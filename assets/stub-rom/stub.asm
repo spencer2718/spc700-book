@@ -96,11 +96,12 @@ spc_payload_start:
 spc_payload_end:
 
 ; -----------------------------------------------------------------
-; ROM header at $00FFC0-$00FFFF
+; ROM header at $00FFC0-$00FFFF (LoROM file offset $7FC0-$7FDF)
 ; -----------------------------------------------------------------
 ; The SNES requires specific values at specific addresses for the
-; console to recognize the cartridge. Asar's `checksum auto`
-; computes and writes the checksum at the end of assembly.
+; console to recognize the cartridge. The checksum and its inverse
+; are filled in by Asar at assembly time, driven by the
+; --fix-checksum=on flag passed by build.sh.
 
 org $00FFC0
 db "SPC700 BOOK STUB     "      ; 21-byte title, padded with spaces
@@ -112,8 +113,9 @@ db $01                          ; country: USA
 db $33                          ; license code
 db $00                          ; ROM version
 
-; Checksum and inverse fields. Asar's `checksum auto` directive
-; (placed below) populates these correctly at assembly time.
+; Checksum and inverse fields. Placeholder zeros; build.sh runs
+; Asar with --fix-checksum=on, which overwrites these with the
+; computed values at the end of assembly.
 dw $0000                        ; checksum complement
 dw $0000                        ; checksum
 
