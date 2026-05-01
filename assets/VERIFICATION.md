@@ -4,11 +4,12 @@ This document is for the asset author / repo maintainer, not for
 readers of the book. It describes the end-to-end test that needs to
 pass before the v0.1.0 release of this asset repo.
 
-The skeleton was produced without access to a SNES emulator or an
-SPC-700 assembler. Some details — the stub ROM's 65816 code, the
-IPL upload protocol, the exact register values — may need
-adjustment when first run. The point of this protocol is to find
-problems early.
+Static build verification (Pass 1) has now passed under Asar 1.91:
+the stub ROM, both SPC-700 payloads, and the BRR sample all build
+to the expected sizes from the source committed on `main`. The
+remaining unknowns are dynamic: whether the upload protocol
+completes against the real SPC IPL ROM, and whether the DSP
+configuration produces audible sound. This protocol covers those.
 
 ## Prerequisites
 
@@ -34,18 +35,71 @@ cd stub-rom
 **If it fails to build:**
 - Asar errors usually point at a file and line. Look at `stub.asm`
   and `ipl_upload.asm`.
-- Common issues: Asar version mismatch on directives like
-  `padbyte`, `pad`, `checksum auto`. Asar 1.81+ supports all of
-  these; older versions may not.
+- Common issues: Asar version mismatch. Pass 1 verified the build
+  under Asar 1.91; older versions may parse some directives
+  differently.
 - The `!PAYLOAD_SIZE` define is passed by the build script via
   `-D`. If Asar complains about an undefined symbol, the `-D`
   flag syntax may differ between Asar versions.
 
-**If size is wrong:** the `pad` and `padbyte` directives at the
-top of `stub.asm` should produce a 256 KiB output regardless of
-how much is actually written. If the result is smaller, Asar may
-not be honoring the directives; if larger, the org positions are
-wrong somewhere.
+**If size is wrong:** the file size is anchored by two things:
+`padbyte $00` at the top of `stub.asm` (sets the fill byte) and
+the sentinel `db $00` at `org $07FFFF` near the bottom (forces the
+file to extend to the last byte of the LoROM-mapped 256 KiB ROM).
+If the result is smaller than 262144 bytes, the sentinel `org` may
+not be assembling; if larger, an `org` is landing past `$07FFFF`.
+
+**Checksum:** the SNES header checksum and complement are filled in
+by Asar at the end of assembly, driven by the `--fix-checksum=on`
+flag in `build.sh`. If Mesen2 later complains about an invalid
+checksum, that flag is the place to start.
+
+## Pre-Mesen2 sanity checks
+
+After Step 1 succeeds, run these four checks on `stub.sfc` to
+confirm the header is well-formed before launching Mesen2. They are
+all `od` / `xxd` one-liners and take a second to run.
+
+This stub ROM is **LoROM**, so the SNES `$00:FFC0` header lives at
+file offset `$7FC0–$7FDF` (not `$FFC0`, which is where a HiROM
+header would sit).
+
+```sh
+cd stub-rom
+```
+
+**Check 1 — file size is exactly 262144 bytes (256 KiB):**
+
+```sh
+test "$(wc -c < stub.sfc | tr -d ' ')" -eq 262144 && echo "OK" || echo "FAIL"
+```
+
+**Check 2 — map mode byte at file offset `$7FD5` is `$20` (LoROM, slow):**
+
+```sh
+xxd -s 0x7FD5 -l 1 stub.sfc
+# Expected: 00007fd5: 20  (one byte, value 0x20)
+```
+
+**Check 3 — ROM-size byte at file offset `$7FD7` is `$08` (256 KiB):**
+
+```sh
+xxd -s 0x7FD7 -l 1 stub.sfc
+# Expected: 00007fd7: 08  (one byte, value 0x08)
+```
+
+**Check 4 — title at file offset `$7FC0–$7FD4` is 21 bytes of
+plain ASCII (no nulls, no high-bit bytes):**
+
+```sh
+xxd -s 0x7FC0 -l 21 stub.sfc
+# Expected: 00007fc0: 5350 4337 3030 2042 4f4f 4b20 5354 5542 2020 2020 20  SPC700 BOOK STUB
+# All 21 bytes should be in the printable ASCII range $20-$7E.
+```
+
+If all four checks pass, the ROM is well-formed and Mesen2 should
+accept it. If a check fails, fix `stub.asm` before opening the file
+in the emulator — Mesen2's diagnostics for header issues are sparse.
 
 ## Step 2: Stub ROM loads in Mesen2 with placeholder payload
 
@@ -60,9 +114,11 @@ Open `stub.sfc` in Mesen2.
   upload didn't run.
 
 **If Mesen2 rejects the ROM:** the header at `$00FFC0-$00FFFF`
-isn't producing what Mesen2 expects. The `checksum auto` directive
-in `stub.asm` should fill the checksum and complement; if Asar
-version doesn't support it, you may need to compute manually.
+(file offset `$7FC0-$7FDF` for LoROM) isn't producing what Mesen2
+expects. The pre-Mesen2 sanity checks above should have caught
+malformed-header cases; if they passed and Mesen2 still rejects
+the ROM, double-check that the `--fix-checksum=on` flag is being
+passed to Asar in `build.sh`.
 
 **If PC is stuck in IPL ROM forever:** the upload protocol in
 `ipl_upload.asm` isn't completing. Likely causes:
@@ -86,10 +142,10 @@ cp ../solution/hello.asm ./hello.asm
 ./build.sh
 ```
 
-**Expected:** "Built hello.bin (8 bytes)." (a 3-instruction
-program: `mov a, #$42` is 2 bytes, `mov $0500, a` is 3 bytes,
-`bra forever` is 2 bytes — 7 total — but Asar may pad to an even
-number; 8 is fine.)
+**Expected:** "Built hello.bin (8 bytes)." (a 4-instruction
+program: `clrp` is 1 byte, `mov a, #$42` is 2 bytes, `mov $0500, a`
+is 3 bytes, `bra forever` is 2 bytes — 1 + 2 + 3 + 2 = 8 bytes
+total. Asar does not pad SPC-700 output, so the count is exact.)
 
 After verification, restore the starter:
 ```sh
