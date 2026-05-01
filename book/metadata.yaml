@@ -1,0 +1,30 @@
+---
+title: "The SPC-700 for Aspiring SNES Musicians"
+subtitle: "Computer architecture, audio synthesis, and the small chip inside a 1990 video game console — taught from first principles, in the service of making music"
+author: ""
+date: ""
+documentclass: book
+classoption:
+  - 11pt
+  - openany
+  - oneside
+geometry:
+  - paperwidth=6.5in
+  - paperheight=9.25in
+  - inner=0.85in
+  - outer=0.7in
+  - top=0.85in
+  - bottom=0.95in
+mainfont: "TeX Gyre Pagella"
+sansfont: "TeX Gyre Heros"
+monofont: "DejaVu Sans Mono"
+fontsize: 11pt
+linestretch: 1.18
+colorlinks: true
+linkcolor: "RoyalBlue"
+urlcolor: "RoyalBlue"
+toccolor: "black"
+toc: true
+toc-depth: 2
+numbersections: true
+---

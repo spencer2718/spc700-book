@@ -1,0 +1,84 @@
+\usepackage{microtype}
+\usepackage{xcolor}
+\definecolor{codebg}{HTML}{F4F2EE}
+\definecolor{rulecolor}{HTML}{888888}
+\definecolor{chaptercolor}{HTML}{2C3E50}
+\definecolor{partcolor}{HTML}{6B0F1A}
+\definecolor{sectioncolor}{HTML}{2C3E50}
+\definecolor{subtitlegray}{HTML}{555555}
+
+% Heading styles
+\usepackage{titlesec}
+\titleformat{\part}[display]
+  {\centering\normalfont\Huge\bfseries\color{partcolor}}
+  {\partname\ \thepart}{20pt}{\Huge}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{chaptercolor}}
+  {\chaptertitlename\ \thechapter}{14pt}{\Huge}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{sectioncolor}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}
+  {\thesubsection}{1em}{}
+\titlespacing*{\chapter}{0pt}{30pt}{20pt}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+
+% Running headers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\makeatletter
+\renewcommand{\chaptermark}[1]{\markboth{\@chapapp\ \thechapter.\ #1}{}}
+\makeatother
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyhead[R]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+
+% Lists
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=4pt}
+
+% Tables: try to keep them tidy
+\usepackage{array}
+\renewcommand{\arraystretch}{1.15}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+% Custom title page
+\usepackage{tikz}
+\renewcommand{\maketitle}{%
+  \begin{titlepage}
+    \thispagestyle{empty}
+    \centering
+    \vspace*{1.5in}
+    {\color{partcolor}\rule{0.5\textwidth}{1pt}}\\
+    \vspace{0.5in}
+    {\Huge\bfseries\color{partcolor} The SPC-700}\\[0.2in]
+    {\LARGE\itshape for Aspiring SNES Musicians}\\
+    \vspace{0.5in}
+    {\color{partcolor}\rule{0.5\textwidth}{1pt}}\\
+    \vspace{1in}
+    \begin{minipage}{0.75\textwidth}
+      \centering\itshape\color{subtitlegray}
+      Computer architecture, audio synthesis, and the small chip
+      inside a 1990 video game console — taught from first principles,
+      in the service of making music.
+    \end{minipage}
+    \vfill
+  \end{titlepage}
+  \cleardoublepage
+}
+
+% Spacing
+\setlength{\emergencystretch}{3em}
+\widowpenalty=10000
+\clubpenalty=10000
+\raggedbottom

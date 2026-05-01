@@ -1,0 +1,64 @@
+# Expected SPC debugger trace — Chapter 5
+
+This is what you should see in Mesen2's SPC debugger as you step
+through the solution. Use this to verify your own version produces
+identical (or equivalent) state.
+
+## Initial state, immediately after IPL upload
+
+```
+PC = $0200
+A  = $00
+X  = ?? (set by the SPC's IPL ROM during init; non-zero)
+Y  = $00
+SP = ?? (set by the SPC's IPL ROM; typically near $EF)
+PSW = $02 (Z flag set, others clear)
+```
+
+ARAM at $0500: `00`
+
+The exact X and SP values depend on what the IPL ROM happens to
+have done; what matters for this exercise is that PC starts at
+$0200 with A == 0.
+
+## After step 1 — `mov a, #$42`
+
+The first instruction loads A with the immediate value $42. The
+opcode for `MOV A, #imm` is $E8, followed by the immediate byte.
+
+```
+PC = $0202     (advanced by 2 bytes: opcode E8 + operand 42)
+A  = $42       *** changed ***
+PSW: Z flag now clear (loaded value is non-zero).
+```
+
+ARAM at $0500: `00`  (unchanged — we haven't stored yet)
+
+## After step 2 — `mov $0500, a`
+
+The second instruction stores A's value to absolute address $0500.
+The opcode for `MOV !abs, A` is $C5, followed by the two address
+bytes in little-endian order.
+
+```
+PC = $0205     (advanced by 3 bytes: $C5 $00 $05)
+A  = $42       (unchanged — store doesn't modify A)
+PSW: unchanged (store doesn't affect flags).
+```
+
+ARAM at $0500: `42`  *** changed ***
+
+## After step 3 — `bra forever`
+
+BRA is a 2-byte instruction with a signed 8-bit relative offset.
+For a self-loop, the offset is -2 ($FE) so PC ends up back at the
+BRA itself.
+
+```
+PC = $0205     (back to the BRA — we are in the infinite loop)
+```
+
+ARAM at $0500: `42`
+
+From this point, stepping just bounces PC at $0205 → $0205. The
+SPC sits here forever, which is exactly what we want.

@@ -1,0 +1,21 @@
+# Build artifacts
+*.bin
+*.sfc
+*.spc
+
+# Temp / OS
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor
+.vscode/
+.idea/
+
+# But: keep these binary assets that ARE source of truth
+!exercises/ch13_first_sound/assets/sine.brr
