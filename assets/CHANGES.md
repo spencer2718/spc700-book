@@ -122,8 +122,68 @@ tools/make_sine_brr.py                           updated (header $C3)
 Files unchanged: `STATUS.md`, `docs/INSTALL.md`, `docs/MEMORY_MAP.md`,
 `docs/TROUBLESHOOTING.md`, `docs/CONVENTIONS.md`, `stub-rom/README.md`.
 
+## Pass 1 — Static build verification
+
+Ran the four static checks from `VERIFICATION.md` (steps 1, 3, 5,
+and 6) under Asar 1.91 on Windows. Three Asar-syntax issues in the
+stub ROM had to be corrected before it would assemble; the two
+SPC-700 payloads and the BRR sample passed first try.
+
+### Fixes applied
+
+**`pad $0000` removed from top of `stub.asm`.** Asar 1.91 rejects
+this with `Epad_in_freespace`: `pad` requires a current pc set by a
+prior `org`, and there is none at the top of the file. The
+combination of `padbyte $00` and the end-of-file sentinel byte is
+sufficient to produce a fully-padded 256 KiB ROM, so `pad $0000` was
+redundant as well as invalid.
+
+**`checksum auto` directive replaced with `--fix-checksum=on` build
+flag.** `checksum auto` is not a recognized Asar directive (1.91
+emits `Eunknown_command`). The equivalent behavior is the
+command-line flag `--fix-checksum=on`, which forces Asar to
+generate the SNES header checksum on every build. Updated
+`stub-rom/build.sh` to pass the flag and removed the directive from
+`stub.asm`.
+
+**Sentinel-byte address fixed to `$07FFFF`.** The end-of-file
+anchor was written as `org !ROM_SIZE_BYTES-1` where
+`!ROM_SIZE_BYTES = $40000`. Asar's `org` takes a SNES address, not
+a ROM offset, and SNES `$003FFF` under LoROM is RAM space, not the
+final byte of a 256 KiB ROM. Replaced with `org $07FFFF`, which is
+the LoROM SNES address mapping to ROM offset `$3FFFF`.
+
+**xkas low/high byte syntax replaced in `ipl_upload.asm`.** The
+original code used `lda #<!SPC_ENTRY` and `lda #>!SPC_ENTRY` to
+take the low and high bytes of the 16-bit ARAM entry address. Asar
+explicitly does not implement xkas's `<`/`>` byte-extraction
+operators (the manual notes the ambiguity with macros and math
+expressions); the errors were `Einvalid_number`. Replaced with
+explicit bitwise math: `lda.b #!SPC_ENTRY&$FF` for the low byte and
+`lda.b #!SPC_ENTRY>>8` for the high byte. The `.b` suffix is
+defensive — accumulator is already 8-bit at this point — and makes
+the intent explicit.
+
+### Verified targets
+
+After the fixes, all four static checks pass under Asar 1.91:
+
+- `stub-rom/build.sh` → `stub.sfc` (262144 bytes, exactly 256 KiB).
+- `exercises/ch05_setup/start/build.sh` (with solution copied in) →
+  `hello.bin` (7 bytes; 2 + 3 + 2 = 7 for `mov a,#$42` + `mov $0500,a` + `bra forever`).
+- `exercises/ch13_first_sound/start/build.sh` (with solution copied
+  in) → `first_sound.bin` (7945 bytes, matching the predicted size
+  from the `org $1F00` BRR offset plus the 9-byte sample).
+- `tools/make_sine_brr.py` regenerates byte-identical output to the
+  checked-in `exercises/ch13_first_sound/assets/sine.brr`.
+
+Note: the previous prediction "Asar may pad to an even number; 8 is
+fine" in `VERIFICATION.md` does not hold for Asar 1.91 — the
+Chapter 5 binary is a clean 7 bytes. `VERIFICATION.md` should be
+updated when the next pass touches it; left untouched here to
+preserve the editorial scope of Pass 1.
+
 ## Next steps
 
-The skeleton is now ready for Mesen2 verification per
-`VERIFICATION.md`. Issues found during verification will be logged
-here as future entries.
+The skeleton is statically clean. Mesen2 verification (steps 2, 4,
+7, and 8 of `VERIFICATION.md`) is the next pass.
