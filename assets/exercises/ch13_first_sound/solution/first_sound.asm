@@ -78,6 +78,11 @@ start:
     mov   y, #$20
     movw  $f2, ya
 
+    ; Clear KOFF before keying on, in case any voice is in release.
+    mov   a, #$5c           ; KOFF
+    mov   y, #$00
+    movw  $f2, ya
+
     ; Key on voice 0.
     mov   a, #!KON
     mov   y, #%00000001

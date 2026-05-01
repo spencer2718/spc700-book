@@ -118,12 +118,20 @@ start:
     mov   y, #$20
     movw  $f2, ya
 
-    ; ----- 9. Key on voice 0 -----
+    ; ----- 9. Pre-clear KOFF so the KON TODO below works cleanly -----
+    ; A re-upload via IPL doesn't reset DSP state, so a previous run
+    ; could have left KOFF non-zero (with voice 0 in release). Clearing
+    ; KOFF here means the TODO below only has to write KON.
+    mov   a, #$5c           ; KOFF
+    mov   y, #$00
+    movw  $f2, ya
+
+    ; ----- 10. Key on voice 0 -----
     ; KON is a bitmask: bit N = key voice N. We want bit 0 set.
     ;
     ; TODO 3: write %00000001 to DSP register KON.
 
-    ; ----- 10. Idle forever -----
+    ; ----- 11. Idle forever -----
 forever:
     bra   forever
 
