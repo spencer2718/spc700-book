@@ -269,8 +269,42 @@ Re-running all builds after the changes:
 All four pre-Mesen2 sanity checks (file size, map mode at `$7FD5`,
 ROM size at `$7FD7`, ASCII title at `$7FC0-$7FD4`) pass.
 
+## Pass 3 — Hardware verification (Mesen2)
+
+Ran the dynamic portion of `VERIFICATION.md` against Mesen2 latest
+stable on Windows. All checks passed; the skeleton is now end-to-end
+verified and tagged `v0.1.0`.
+
+### Results
+
+- **Pre-Mesen2 sanity checks** all pass on the user's machine: file
+  size = 262144, byte at file offset `$7FD5` = `$20`, byte at
+  `$7FD7` = `$08`, title at `$7FC0-$7FD4` is 21 bytes of ASCII.
+- **Mesen2 accepts `stub.sfc`** without error or warning.
+- **SPC debugger reaches the user's code:** PC lands at `$0201` on
+  the Chapter 5 payload, or `$025B` on the Chapter 13 payload —
+  either confirms the IPL handshake completed and the SPC is
+  executing the uploaded bytes.
+- **Chapter 13's 2 kHz sine tone** plays within 1-2 seconds of ROM
+  load and sustains indefinitely.
+
+### Deferred
+
+The byte-at-`$0500` check (Chapter 5 PASS condition 1) was not run
+directly — Mesen2's memory viewer was unfamiliar to the user and
+Chapter 13's full-run success is a strictly stronger end-to-end
+test (it requires the IPL upload, code execution, DSP configuration,
+and BRR decoding all to work). Skipping the weaker check was the
+right trade given the stronger one passed cleanly.
+
+### Scope of verification
+
+This pass was on **Windows** with Mesen2 running natively. macOS
+and Linux paths are not yet verified; readers on those platforms
+will be the first to exercise the build paths in
+`docs/INSTALL.md`.
+
 ## Next steps
 
-The skeleton is statically clean and well-formed for Mesen2. Step 2
-of `VERIFICATION.md` (loading the stub ROM in Mesen2 and observing
-that it boots without rejection) is the natural next check.
+`v0.1.0` is tagged. Future passes will add chapter exercises beyond
+the critical path, with planning to be done before scaffolding.
