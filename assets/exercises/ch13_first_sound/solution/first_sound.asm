@@ -22,6 +22,7 @@ base $0200
 start:
     mov   x, #$ff
     mov   sp, x
+    clrp                    ; ensure direct page = $0000-$00FF
 
     mov   $f1, #$00
 

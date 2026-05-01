@@ -43,6 +43,7 @@ start:
     ; ----- 1. CPU init -----
     mov   x, #$ff
     mov   sp, x
+    clrp                    ; ensure direct page = $0000-$00FF
 
     ; ----- 2. Hide the IPL ROM and disable timers -----
     mov   $f1, #$00

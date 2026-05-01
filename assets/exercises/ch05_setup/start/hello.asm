@@ -27,6 +27,7 @@ org $0000
 base $0200
 
 start:
+    clrp                ; ensure direct page = $0000-$00FF
     mov   a, #$42       ; A = $42
     ; TODO: write A to ARAM address $0500
     ;       hint: the form is `mov <abs>, a` with a 16-bit address.
