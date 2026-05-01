@@ -36,7 +36,7 @@ if [ "$PAYLOAD_SIZE" -gt 60000 ]; then
     exit 1
 fi
 
-asar -werror -DPAYLOAD_SIZE=$PAYLOAD_SIZE stub.asm stub.sfc
+asar -werror --fix-checksum=on -DPAYLOAD_SIZE=$PAYLOAD_SIZE stub.asm stub.sfc
 
 ROM_SIZE=$(wc -c < stub.sfc | tr -d ' ')
 echo "Built stub.sfc ($ROM_SIZE bytes)."

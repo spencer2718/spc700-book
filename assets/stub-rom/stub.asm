@@ -28,12 +28,11 @@ lorom
 ; ROM padding
 ; -----------------------------------------------------------------
 ; By default, Asar only writes regions that have actual data. We
-; want a fully-padded 256 KiB ROM, so we pad with $00 in any region
-; we don't otherwise fill, and explicitly anchor the file size with
-; a sentinel byte at the very end.
+; want a fully-padded 256 KiB ROM, so we set the fill byte to $00
+; (any gap between written regions becomes $00) and anchor the file
+; size with a sentinel byte at the very end of the LoROM space.
 
 padbyte $00
-pad $0000
 
 ; -----------------------------------------------------------------
 ; Reset vector — first code that runs on power-on
@@ -128,14 +127,15 @@ dw $0000, $0000, reset, $0000, reset, reset, reset, reset
 
 ; -----------------------------------------------------------------
 ; Force the file size to !ROM_SIZE_BYTES by writing one byte at the
-; final offset. Asar fills any gap with `padbyte` (set to $00 above).
+; final ROM offset. In LoROM, ROM offset $3FFFF (the last byte of a
+; 256 KiB ROM) maps to SNES address $07:FFFF. Asar fills any gap with
+; `padbyte` (set to $00 above).
 ; -----------------------------------------------------------------
 
-org !ROM_SIZE_BYTES-1
+org $07FFFF
 db $00
 
 ; -----------------------------------------------------------------
-; Compute and write the SNES header checksum.
+; The SNES header checksum is generated automatically by Asar when
+; invoked with --fix-checksum=on (see build.sh).
 ; -----------------------------------------------------------------
-
-checksum auto
