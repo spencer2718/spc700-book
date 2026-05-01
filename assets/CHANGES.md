@@ -183,7 +183,94 @@ Chapter 5 binary is a clean 7 bytes. `VERIFICATION.md` should be
 updated when the next pass touches it; left untouched here to
 preserve the editorial scope of Pass 1.
 
+## Pass 2 — Pre-Mesen2 cleanup
+
+Static review (a separate model going over the post-Pass-1 state)
+flagged five issues to address before launching Mesen2: one
+ostensibly a header-length blocker, four defensive improvements.
+After verifying against the actual file state, four of the five
+applied; the blocker turned out to be a counting error against the
+already-correct source.
+
+### Verified, no fix needed
+
+**Header title length is already 21 bytes.** The reviewer flagged
+the title literal as 17 bytes, on the assumption that the visible
+trailing whitespace was 1 character. The actual literal in
+`stub.asm` is `"SPC700 BOOK STUB     "` — 16 visible characters
+plus 5 trailing spaces, exactly 21 bytes. Confirmed two ways: by
+counting the literal in the source, and by reading bytes
+`$7FC0-$7FD4` from a freshly-built `stub.sfc` (printable ASCII end
+to end). The map mode byte `$20` lands correctly at file offset
+`$7FD5`, not at `$7FD1` as the off-by-four hypothesis predicted.
+
+Related correction in scope: the reviewer's pre-Mesen2 sanity
+checks were written for HiROM file offsets (`$FFC0-$FFD4`,
+`$FFD5`, `$FFD7`). This stub is LoROM, so the SNES header at
+`$00:FFC0` lives at file offset `$7FC0-$7FDF`. `VERIFICATION.md`
+now uses the correct LoROM offsets in its sanity-check section.
+
+### Fixes applied
+
+**Bitwise math in `ipl_upload.asm` parenthesized.** The Pass 1 fix
+to the byte-extraction expressions used `#!SPC_ENTRY&$FF` and
+`#!SPC_ENTRY>>8` directly. Asar's left-to-right math precedence
+parses these correctly, but parens make the intent unambiguous and
+protect future similar expressions. Now `#(!SPC_ENTRY&$FF)` and
+`#(!SPC_ENTRY>>8)`.
+
+**`clrp` added to all four SPC payloads.** Both starter and
+solution for Chapter 5 and Chapter 13 now begin with an explicit
+`clrp` after the stack-pointer setup. The IPL ROM should leave P=0
+already, so this is defensive rather than load-bearing, but it
+makes each payload self-contained — every payload owns its own
+direct-page assumption rather than relying on the IPL ROM's exit
+state.
+
+**KOFF cleared before KON in Chapter 13.** Both the starter and the
+solution now write `$00` to KOFF (`$5C`) between the FLG=`$20`
+unmute and the KON write. The IPL handshake re-uploads payload
+bytes but does not reset DSP state, so a re-upload after a previous
+run could leave a voice in release with KOFF still set, causing the
+new KON to be silenced. The starter's TODO 3 is unchanged ("write
+%00000001 to KON") because the KOFF clear is provided to the reader
+rather than added to the TODO scope.
+
+**`stub.asm` comments cleaned of stale references.** Two header
+comments still mentioned the `checksum auto` directive that Pass 1
+replaced with `--fix-checksum=on`. Reworded to describe current
+behavior. The header section banner now also lists the LoROM file
+offset (`$7FC0-$7FDF`) alongside the SNES address, since the
+file-offset form is what the new sanity checks operate on.
+
+**`VERIFICATION.md` updated for current state.** Replaced the stale
+"skeleton produced without an SPC-700 assembler" preamble with an
+accurate one-paragraph status; updated Step 1's diagnostic notes
+to reference the actual current directives; added a new
+"Pre-Mesen2 sanity checks" section between Steps 1 and 2; updated
+Step 3's expected ch05 size from "8 bytes (Asar may pad to even)"
+to the new exact 1 + 2 + 3 + 2 = 8 byte count.
+
+### Build sizes after Pass 2
+
+Re-running all builds after the changes:
+
+- `stub.sfc` — 262144 bytes (unchanged; padding is what determines
+  the file size, not stub-code length).
+- `hello.bin` — 8 bytes (1 + 2 + 3 + 2 with the new `clrp` prefix;
+  was 7 bytes in Pass 1).
+- `first_sound.bin` — 7945 bytes (unchanged). The reviewer
+  predicted 7951 bytes (+6 from clrp + KOFF clear), but the file
+  size is anchored by the trailing `org $1F00` plus the 9-byte
+  sine sample (`$1F09 = 7945`). Code growth in front of the gap
+  shrinks the gap; it does not extend the file. Confirmed by
+  rebuild.
+
+All four pre-Mesen2 sanity checks (file size, map mode at `$7FD5`,
+ROM size at `$7FD7`, ASCII title at `$7FC0-$7FD4`) pass.
+
 ## Next steps
 
-The skeleton is statically clean. Mesen2 verification (steps 2, 4,
-7, and 8 of `VERIFICATION.md`) is the next pass.
+The skeleton is statically clean and well-formed for Mesen2. Step 2
+of `VERIFICATION.md` (loading the stub ROM in Mesen2 and observing
+that it boots without rejection) is the natural next check.
