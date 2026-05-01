@@ -49,9 +49,9 @@ spc_upload_entry:
     bne .wait_bb
 
     ; ----- Step 2: send destination address -----
-    lda.b #!SPC_ENTRY&$FF
+    lda.b #(!SPC_ENTRY&$FF)
     sta !APUIO2
-    lda.b #!SPC_ENTRY>>8
+    lda.b #(!SPC_ENTRY>>8)
     sta !APUIO3
 
     ; ----- Step 3: send "start transfer" signal on port 1 -----
@@ -93,9 +93,9 @@ spc_upload_entry:
 
 .upload_done:
     ; ----- Step 6: send the entry-point address -----
-    lda.b #!SPC_ENTRY&$FF
+    lda.b #(!SPC_ENTRY&$FF)
     sta !APUIO2
-    lda.b #!SPC_ENTRY>>8
+    lda.b #(!SPC_ENTRY>>8)
     sta !APUIO3
 
     ; ----- Step 7: signal "jump to entry" by writing 0 to port 1 -----
