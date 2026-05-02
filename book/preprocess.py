@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Preprocess SPC-700 textbook for pandoc."""
+"""Preprocess SPC-700 textbook for pandoc.
+
+Reads `spc700_textbook.md` from this script's own directory and writes
+`spc700_textbook_processed.md` next to it. No command-line arguments.
+"""
 
 import re
+from pathlib import Path
 
-with open('/home/claude/spc700_textbook.md', 'r') as f:
+BASE = Path(__file__).resolve().parent
+INPUT_PATH = BASE / "spc700_textbook.md"
+OUTPUT_PATH = BASE / "spc700_textbook_processed.md"
+
+with INPUT_PATH.open("r", encoding="utf-8") as f:
     text = f.read()
 
 # 1. Strip top-level title and italic subtitle (we'll put them in YAML)
@@ -66,7 +75,7 @@ new_table = """| Filter | Equation                                | Typical use 
 if old_table in text:
     text = text.replace(old_table, new_table)
 
-with open('/home/claude/pdfwork/spc700_textbook_processed.md', 'w') as f:
+with OUTPUT_PATH.open("w", encoding="utf-8") as f:
     f.write(text)
 
-print("Preprocessed OK.")
+print(f"Preprocessed OK: {OUTPUT_PATH}")
