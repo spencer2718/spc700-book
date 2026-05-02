@@ -1,272 +1,225 @@
 # Verification Protocol
 
-This document is for the asset author / repo maintainer, not for
-readers of the book. It describes the end-to-end test that needs to
-pass before the v0.1.0 release of this asset repo.
+> **Audience.** This is a maintainer-facing regression document, not
+> a reader-facing exercise walkthrough. Readers should follow the
+> per-exercise READMEs (`exercises/chXX_*/README.md`). Use this file
+> when you change something in this repo and want to confirm you
+> haven't regressed the v0.1.0 path.
 
-Static build verification (Pass 1) has now passed under Asar 1.91:
-the stub ROM, both SPC-700 payloads, and the BRR sample all build
-to the expected sizes from the source committed on `main`. The
-remaining unknowns are dynamic: whether the upload protocol
-completes against the real SPC IPL ROM, and whether the DSP
-configuration produces audible sound. This protocol covers those.
+## What "verified" means as of v0.1.0
+
+`v0.1.0` was verified end-to-end on **Windows** with **Asar 1.91**
+and **Mesen2** (latest stable at the time of tagging). Linux and
+macOS *should* work — both tools are cross-platform — but the
+build scripts and exact command paths have not yet been exercised
+on those platforms. If you verify on another platform, file the
+finding in `CHANGES.md`.
 
 ## Prerequisites
 
-- Asar 1.81 or later installed and on PATH.
+- Asar 1.81 or later on `PATH` (or invoke by full path).
 - Mesen2 installed.
-- This repo cloned and your shell `cd`'d into its root.
+- Repo cloned; shell `cd`'d into the repo root.
 
-Run `asar --version` to confirm Asar works. Open Mesen2 and dismiss
-any first-launch dialogs.
+Run `asar --version` to confirm Asar works. Open Mesen2 and
+dismiss any first-launch dialogs.
 
-## Step 1: Stub ROM builds with a placeholder payload
+## The protocol
+
+Eight steps: 1–4 are static (build-time), 5–8 are dynamic (run in
+Mesen2). The static steps are quick and catch most regressions.
+The dynamic steps require an emulator session and a working audio
+output.
+
+### Step 1 — stub ROM builds
 
 ```sh
 cd stub-rom
 ./build.sh
 ```
 
-**Expected:**
-- "No payload provided; using 1-byte placeholder (STOP)."
-- "Built stub.sfc (262144 bytes)." (256 KiB exactly)
+Expected:
+
+- `No payload provided; using 1-byte placeholder (STOP).`
+- `Built stub.sfc (262144 bytes).`
 - No warnings printed.
 
-**If it fails to build:**
-- Asar errors usually point at a file and line. Look at `stub.asm`
-  and `ipl_upload.asm`.
-- Common issues: Asar version mismatch. Pass 1 verified the build
-  under Asar 1.91; older versions may parse some directives
-  differently.
-- The `!PAYLOAD_SIZE` define is passed by the build script via
-  `-D`. If Asar complains about an undefined symbol, the `-D`
-  flag syntax may differ between Asar versions.
+The 262144-byte size (256 KiB exactly) is anchored by `padbyte $00`
+plus the `db $00` sentinel at `org $07FFFF` near the bottom of
+`stub.asm`. The SNES header checksum is filled by Asar, driven by
+the `--fix-checksum=on` flag in `build.sh`.
 
-**If size is wrong:** the file size is anchored by two things:
-`padbyte $00` at the top of `stub.asm` (sets the fill byte) and
-the sentinel `db $00` at `org $07FFFF` near the bottom (forces the
-file to extend to the last byte of the LoROM-mapped 256 KiB ROM).
-If the result is smaller than 262144 bytes, the sentinel `org` may
-not be assembling; if larger, an `org` is landing past `$07FFFF`.
+### Step 2 — pre-Mesen2 sanity checks on stub.sfc
 
-**Checksum:** the SNES header checksum and complement are filled in
-by Asar at the end of assembly, driven by the `--fix-checksum=on`
-flag in `build.sh`. If Mesen2 later complains about an invalid
-checksum, that flag is the place to start.
-
-## Pre-Mesen2 sanity checks
-
-After Step 1 succeeds, run these four checks on `stub.sfc` to
-confirm the header is well-formed before launching Mesen2. They are
-all `od` / `xxd` one-liners and take a second to run.
-
-This stub ROM is **LoROM**, so the SNES `$00:FFC0` header lives at
-file offset `$7FC0–$7FDF` (not `$FFC0`, which is where a HiROM
-header would sit).
+The stub is **LoROM**, so the SNES `$00:FFC0` header lives at file
+offset `$7FC0–$7FDF` (not `$FFC0`). These four checks catch the
+common header-malformation regressions before launching the
+emulator.
 
 ```sh
 cd stub-rom
 ```
 
-**Check 1 — file size is exactly 262144 bytes (256 KiB):**
+**Check A — file size is exactly 262144 bytes:**
 
 ```sh
 test "$(wc -c < stub.sfc | tr -d ' ')" -eq 262144 && echo "OK" || echo "FAIL"
 ```
 
-**Check 2 — map mode byte at file offset `$7FD5` is `$20` (LoROM, slow):**
+**Check B — map mode byte at file offset `$7FD5` is `$20` (LoROM):**
 
 ```sh
 xxd -s 0x7FD5 -l 1 stub.sfc
-# Expected: 00007fd5: 20  (one byte, value 0x20)
+# Expected: 00007fd5: 20
 ```
 
-**Check 3 — ROM-size byte at file offset `$7FD7` is `$08` (256 KiB):**
+**Check C — ROM-size byte at file offset `$7FD7` is `$08` (256 KiB):**
 
 ```sh
 xxd -s 0x7FD7 -l 1 stub.sfc
-# Expected: 00007fd7: 08  (one byte, value 0x08)
+# Expected: 00007fd7: 08
 ```
 
-**Check 4 — title at file offset `$7FC0–$7FD4` is 21 bytes of
-plain ASCII (no nulls, no high-bit bytes):**
+**Check D — title at `$7FC0–$7FD4` is 21 bytes of printable ASCII:**
 
 ```sh
 xxd -s 0x7FC0 -l 21 stub.sfc
 # Expected: 00007fc0: 5350 4337 3030 2042 4f4f 4b20 5354 5542 2020 2020 20  SPC700 BOOK STUB
-# All 21 bytes should be in the printable ASCII range $20-$7E.
 ```
 
-If all four checks pass, the ROM is well-formed and Mesen2 should
-accept it. If a check fails, fix `stub.asm` before opening the file
-in the emulator — Mesen2's diagnostics for header issues are sparse.
-
-## Step 2: Stub ROM loads in Mesen2 with placeholder payload
-
-Open `stub.sfc` in Mesen2.
-
-**Expected:**
-- Mesen2 accepts the file as a valid ROM (no rejection).
-- Screen is black or in forced-blank state.
-- No crash.
-- Open the SPC debugger. PC should eventually settle at the SPC's
-  STOP instruction at $0200, or be stuck in the IPL ROM if the
-  upload didn't run.
-
-**If Mesen2 rejects the ROM:** the header at `$00FFC0-$00FFFF`
-(file offset `$7FC0-$7FDF` for LoROM) isn't producing what Mesen2
-expects. The pre-Mesen2 sanity checks above should have caught
-malformed-header cases; if they passed and Mesen2 still rejects
-the ROM, double-check that the `--fix-checksum=on` flag is being
-passed to Asar in `build.sh`.
-
-**If PC is stuck in IPL ROM forever:** the upload protocol in
-`ipl_upload.asm` isn't completing. Likely causes:
-- Wrong I/O register addresses (verify `$2140-$2143`).
-- Counter mismatch in the byte-loop section.
-- The "+2" final-counter signal is wrong.
-
-## Step 3: Chapter 5 starter assembles
+### Step 3 — Chapter 5 payload assembles
 
 ```sh
 cd ../exercises/ch05_setup/start
-./build.sh
-```
-
-**Expected:** the build will *fail* with a syntax error on the
-TODO line, since the starter has a TODO placeholder. To verify
-the build path: copy the solution and re-run.
-
-```sh
 cp ../solution/hello.asm ./hello.asm
 ./build.sh
 ```
 
-**Expected:** "Built hello.bin (8 bytes)." (a 4-instruction
-program: `clrp` is 1 byte, `mov a, #$42` is 2 bytes, `mov $0500, a`
-is 3 bytes, `bra forever` is 2 bytes — 1 + 2 + 3 + 2 = 8 bytes
-total. Asar does not pad SPC-700 output, so the count is exact.)
+Expected: `Built hello.bin (8 bytes).` (`clrp` + `mov a,#$42` +
+`mov $0500,a` + `bra forever` = 1 + 2 + 3 + 2 = 8 bytes. Asar does
+not pad SPC-700 output.)
 
-After verification, restore the starter:
+Restore the starter:
+
 ```sh
 git checkout hello.asm
 ```
 
-## Step 4: Chapter 5 ROM loads and exhibits PASS conditions
+### Step 4 — Chapter 13 payload assembles, BRR is reproducible
 
 ```sh
+cd ../../ch13_first_sound/start
+cp ../solution/first_sound.asm ./first_sound.asm
+./build.sh
+```
+
+Expected: `Built first_sound.bin (7945 bytes).` The size is
+anchored by the trailing `org $1F00 / incbin sine.brr` block (file
+ends at offset `$1F08`, byte 7945). Code growth in front of that
+block shrinks the gap; it does not extend the file.
+
+Restore the starter:
+
+```sh
+git checkout first_sound.asm
+```
+
+Confirm the BRR sample is byte-identical to what the generator
+produces:
+
+```sh
+cd ../../..
+python3 tools/make_sine_brr.py /tmp/regenerated_sine.brr
+diff exercises/ch13_first_sound/assets/sine.brr /tmp/regenerated_sine.brr
+```
+
+Expected: no output (files identical).
+
+### Step 5 — stub.sfc loads in Mesen2
+
+Open `stub.sfc` in Mesen2 (File → Open ROM).
+
+Expected:
+
+- Mesen2 accepts the file with no error or warning.
+- Screen is black (forced blank).
+- No crash.
+
+Open the SPC Debugger (Debug → SPC Debugger, Ctrl+F). PC should
+either be inside the IPL ROM (around `$FFC0`–`$FFC9`) momentarily,
+or at the SPC's `STOP` instruction at `$0200` once the placeholder
+payload's single byte (`$FF` = STOP) has executed.
+
+### Step 6 — Chapter 5 ROM exhibits PASS conditions
+
+```sh
+cd exercises/ch05_setup/start
 cp ../solution/hello.asm ./hello.asm
 ./build.sh
 cd ../../../stub-rom
 ./build.sh ../exercises/ch05_setup/start/hello.bin
 ```
 
-Load `stub.sfc` in Mesen2.
+Load the resulting `stub.sfc` in Mesen2. Verify the four PASS
+conditions from `exercises/ch05_setup/PASS_CONDITIONS.md`:
 
-**Verify the four PASS conditions** from
-`exercises/ch05_setup/PASS_CONDITIONS.md`:
+1. PC reaches `$0201` (or wherever the `clrp` lands; the IPL hands
+   off at `$0200`, so PC inside `$0200`–`$0207` confirms upload).
+2. After stepping the `mov $0500, a` instruction, Memory Tools
+   (Memory Type = RAM) shows `$42` at address `$0500`.
+3. A holds `$42` just before the store.
+4. PC eventually oscillates inside the `bra forever` loop.
 
-1. `M(0x0500) == 0x42` after the second SPC instruction.
-2. PC reaches and oscillates within the BRA loop.
-3. A == $42 just before the store.
-4. PC starts at $0200 after the upload.
-
-**If any fails:** the bug is either in the SPC payload or the
-upload protocol. Use the SPC debugger to step through and find
-where execution actually goes.
-
-## Step 5: Chapter 13 BRR encoding is correct
-
-Inspect `exercises/ch13_first_sound/assets/sine.brr`:
+### Step 7 — Chapter 13 produces audible sound
 
 ```sh
-od -An -tx1 exercises/ch13_first_sound/assets/sine.brr
-```
-
-**Expected output:** `c3 02 46 66 42 0e ca aa ce`
-
-That's 9 bytes: header `$C3` (filter 0, shift 12, loop+end set),
-then 8 data bytes encoding the 16-sample sine.
-
-If different: re-run `tools/make_sine_brr.py` to regenerate.
-
-## Step 6: Chapter 13 builds
-
-```sh
-cd ../exercises/ch13_first_sound/start
-cp ../solution/first_sound.asm ./first_sound.asm   # for verification
+cd exercises/ch13_first_sound/start
+cp ../solution/first_sound.asm ./first_sound.asm
 ./build.sh
-```
-
-**Expected:** "Built first_sound.bin (about 8 KiB)." More
-precisely: file offset $0000-$xx (code) is filled, then $0100-$1DFF
-is gap (Asar fills with $00), then $1E00-$1E03 is the directory,
-then $1E04-$1EFF is gap, then $1F00-$1F08 is the BRR. Total file
-size is $1F09 = 7945 bytes.
-
-If you see a much smaller binary: Asar may be compacting the gaps
-instead of zero-filling. The actual file *must* be at least 7945
-bytes for the upload to land the BRR at ARAM $2100.
-
-If you see an error about `incbin` not finding `sine.brr`: the
-build script copies the file from `../assets/`. Verify the copy
-worked.
-
-## Step 7: Chapter 13 ROM produces audible sound
-
-```sh
 cd ../../../stub-rom
 ./build.sh ../exercises/ch13_first_sound/start/first_sound.bin
 ```
 
-Load `stub.sfc` in Mesen2.
+Load the resulting `stub.sfc` in Mesen2. Within 1–2 seconds of
+load you should hear a steady 2 kHz sine tone that sustains
+indefinitely.
 
-**Listen.**
+If silent or distorted, walk
+`exercises/ch13_first_sound/PASS_CONDITIONS.md`. Check that
+Mesen2's master volume isn't muted (it's an emulator setting,
+unrelated to your DSP code).
 
-You should hear a steady 2 kHz tone shortly after loading.
+### Step 8 — capture an SPC for archival
 
-**If silence:** walk the DSP register checklist in
-`exercises/ch13_first_sound/PASS_CONDITIONS.md`.
+In Mesen2 while Chapter 13's ROM plays, save an SPC file (the menu
+varies between Mesen2 versions; commonly Tools → Run Single Frame
+or a dedicated "Save SPC" entry). Save as `verification_ch13.spc`.
+Open in any external SPC player and confirm the same 2 kHz tone.
+This proves the SPC has reached a self-contained playable state.
 
-**If noise instead of a sine:**
-- BRR header byte at $2100 is wrong. Should be $C3.
-- BRR data isn't at $2100; check ARAM in the debugger.
+## If a step fails
 
-**If only one channel:**
-- One of V0VOLL/V0VOLR is wrong.
+If any step fails after a change, the change introduced a
+regression against `v0.1.0`. The fastest recovery:
 
-## Step 8: Capture an SPC for archival
+```sh
+git bisect start
+git bisect bad           # current HEAD is broken
+git bisect good v0.1.0   # v0.1.0 was end-to-end clean
+```
 
-In Mesen2, while Chapter 13's ROM plays:
+…and let bisect narrow down the offending commit.
 
-- Save SPC via the appropriate menu (varies by Mesen2 version).
-- Save as `verification_ch13.spc`.
-- Open in any SPC player.
-- Verify the same 2 kHz tone plays.
+If a step fails on `v0.1.0` itself (no recent change), the cause
+is environmental: tool version, OS, or shell. Check Asar version
+(`asar --version`) and Mesen2 version first.
 
-This proves the SPC reaches a self-contained playable state, which
-is the actual end goal for any SPC-related work.
+## Reporting
 
-## What success looks like
+When a regression survives bisect (e.g., it depends on the tool
+version, not a repo commit), open an issue with:
 
-Steps 1 through 8 all pass. v0.1.0 can then be tagged.
-
-## What "almost success" looks like
-
-If steps 1-5 pass but step 7 doesn't, the gap is in DSP
-configuration. The debugger walkthrough will localize it.
-
-If steps 1-2 pass but step 4 doesn't, the gap is in the upload
-protocol. Cross-check against SNESdev's IPL documentation.
-
-If step 1 fails, fix the Asar invocation first.
-
-## Reporting back
-
-If verification fails, please send back:
 1. Which step failed.
 2. Exact error message or observed behavior.
-3. Asar version (`asar --version`) and Mesen2 version.
-4. Your OS.
-
-That's enough to diagnose nearly any problem in the skeleton.
+3. `asar --version` output, Mesen2 version, OS, shell.
+4. Git SHA of the working tree.
