@@ -58,7 +58,7 @@ The book has four parts and four appendices.
 
 **Part I — The idea of a computer.** Four chapters that build up, from the ground, what a CPU is and how it works. We will not yet be talking about the SPC-700 specifically; we will be building the vocabulary needed to talk about any small CPU.
 
-**Part II — Programming the SPC-700.** Six chapters that take the abstract picture of Part I and apply it to the specific chip: its registers, its instructions, how to write code that runs on it.
+**Part II — Programming the SPC-700.** Seven chapters that take the abstract picture of Part I and apply it to the specific chip: its registers, its instructions, how to write code that runs on it.
 
 **Part III — The S-DSP.** Four chapters about the audio chip the SPC-700 controls. This is where the actual sound happens. Voices, samples, envelopes, echo.
 
@@ -66,7 +66,10 @@ The book has four parts and four appendices.
 
 The appendices are reference material — the full instruction set, the DSP register map, a list of common pitfalls, a suggested progression for self-study, and a worked pitch table.
 
-You will want a SNES emulator with a good debugger before Part III. *Mesen2* is the recommended one, free and open source. Without it, the second half of this book will feel abstract in a way it does not need to.
+Chapter 5 walks you through the required tooling: Mesen2, Asar, and
+the companion repository. You do not need those tools for Part I,
+but from Chapter 5 onward the book increasingly asks you to observe
+real SPC-700 behavior rather than only read about it.
 
 ---
 
