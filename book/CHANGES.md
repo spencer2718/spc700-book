@@ -45,6 +45,20 @@ and conceptual exercises are unchanged.
 - No existing chapter prose was edited beyond the Chapter 5
   placeholder replacement and the Chapter 6 subsection insertion.
 
+### Pass B-fix — Chapter 5 errata
+
+Two drafting bugs in the Pass B Chapter 5 prose were corrected.
+First, the `mov   <destination>, <source>` template line was
+restored to a fenced code block; in Pass B it landed as bare body
+text, where the angle brackets risked being eaten as HTML tags by
+some renderers. Second, the single-step walkthrough paragraph
+("Press F10 (step) once...") was rewritten to match the actual
+`hello.asm` starter — the original prose narrated four steps
+through `mov x, #$ff` and `mov sp, x`, which belong to the
+Chapter 6 exercise rather than Chapter 5's. The corrected
+walkthrough describes the actual three-step sequence (`clrp`,
+`mov a, #$42`, the reader's TODO write).
+
 ## Pass A — broaden audience, restructure for hands-on companion
 
 This pass reframes the book to admit readers without prior

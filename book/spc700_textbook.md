@@ -921,7 +921,10 @@ further, is to write that line.
 What we want is the byte `$42` (which the previous instruction has
 placed in register A) to be written to ARAM address `$0500`. We
 need an SPC-700 instruction with the form
+
+```
 mov   <destination>, <source>
+```
 
 where `<destination>` is an absolute memory address and `<source>`
 is the A register. The destination address is `$0500`, and the
@@ -996,11 +999,11 @@ the SPC's 64 KiB ARAM. Type `0500` into the address field and
 press Enter. The view jumps to address `$0500`. The byte there is
 `$00` (memory is zero on a fresh boot).
 
-Press F10 (step) once. PC advances from `$0200` to `$0203` (the
-length of the first instruction `mov x, #$ff`). X has changed.
-Step again. PC advances; SP has changed. Step again. PC advances;
-PSW has changed slightly (the P flag). Step again. PC advances;
-A is now `$42`. Step *one more time* and look at Memory Tools.
+Press F10 (step) once. PC advances by one byte (from `$0200` to
+`$0201`); the `clrp` instruction has executed, and the P bit in
+PSW is now `0`. Step again. PC advances by two more bytes (to
+`$0203`); the `mov a, #$42` instruction has executed, and A is
+now `$42`. Step *one more time* and look at Memory Tools.
 
 The byte at `$0500` is now `$42`.
 
