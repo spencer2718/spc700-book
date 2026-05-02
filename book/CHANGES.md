@@ -49,6 +49,23 @@ commit the PDF back to main automatically; local `./build.sh`
 is for previewing before pushing rather than for keeping the
 in-repo PDF current.
 
+### Pass D-fix — flip workflow permissions and re-provoke trigger
+
+The first Pass D push (`d4aa026`) was registered by GitHub but
+never triggered a workflow run, despite the path filter matching
+the changed files and despite Pass C-fix (the immediately prior
+push, with the same path-set) triggering CI cleanly. Cause not
+isolated from the public REST API alone; the missed trigger was
+treated as a transient GitHub Actions issue.
+
+Separately, the repo's Settings → Actions → General → Workflow
+permissions was found to be on the default "Read repository
+contents and packages permissions", which would have caused the
+bot's `git push` step to 403 once the workflow did run. That was
+flipped to "Read and write permissions" on the GitHub UI side.
+This Pass D-fix entry doubles as a re-provocation commit so the
+workflow has a fresh push to react to.
+
 ## Pass C — formalize the PDF build system
 
 Until this pass, the PDF was produced by a manual Pandoc command
