@@ -3977,6 +3977,25 @@ Equal temperament is one tuning system among many. SNES music almost universally
 If your samples are *not* tuned to the standard A=440 reference, the pitch values above will produce notes that are in tune *with each other* but transposed relative to other instruments. For mixed ensembles you'll want to retune samples or apply a per-instrument detune offset.
 
 
+# Appendix F: Embedding the SPC in a Host Application
+
+*This appendix is reserved for content covering how to embed an
+SPC-700 emulator inside a host application — for example, a VST or
+standalone audio application that uses real SPC-700 emulation as its
+sound source. Topics planned: the architectural distinction between
+SPC playback (loading and rendering .spc files), live SPC core
+operation (running the SPC and injecting commands via the mailbox),
+and full SNES stub emulation (driving the SPC the way a SNES game
+would). Real-time audio threading, sample-rate conversion, host-side
+sample/instrument management, and integration with libraries like
+blargg's snes_spc are also planned.*
+
+*This appendix is not yet written. Readers who want to begin a host-
+integration project before this content lands can study the
+companion C700 fork (a CLAP/AU/VST plugin built around snes_spc)
+and the SNES homebrew community's tooling.*
+
+
 ---
 
 *The SPC-700 is a 30-year-old, 1 MHz, 8-bit chip with 64 KiB of RAM, and people are still making new music with it because the constraints turn out to be a pleasure to work inside. Welcome to the club.*
