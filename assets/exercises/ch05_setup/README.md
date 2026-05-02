@@ -48,33 +48,64 @@ You now have `stub-rom/stub.sfc`. Load that file in Mesen2.
 2. **File → Open ROM → stub.sfc**.
 3. The screen will be black. This is correct — the stub ROM does
    not render anything. The action is on the audio CPU.
-4. **Debug → Sound → SPC** (or similar; menu may vary by Mesen2
-   version) to open the SPC-700 debugger window.
 
-You should see the SPC's CPU registers, a code listing at the
-current PC, and a memory view of ARAM.
+## Mesen2 windows you'll need
+
+Mesen2 has several debugger windows. Two are relevant for this
+exercise:
+
+- **SPC Debugger** (Debug → SPC Debugger, or **Ctrl+F**): shows
+  the SPC's CPU state and disassembly. Use this to step
+  instructions, set breakpoints, and watch PC, A, X, Y, SP, PSW
+  change.
+
+- **Memory Tools** (Debug → Memory Tools, or **Ctrl+M**): shows
+  raw memory as bytes. Use this to inspect ARAM contents.
+
+Both menu items are on the *main* Mesen2 window's menu bar, not on
+the SPC Debugger window's own Debug menu (which only has execution
+controls — continue, step, run cycle/frame/scanline). It's normal
+to keep the two windows open side by side; they update
+independently.
+
+In **Memory Tools**, find the "Memory Type" dropdown near the top
+of the window. The values you'll touch in this book are:
+
+- **RAM** — the SPC's 64 KiB ARAM. This is what you want for
+  reading/writing memory from your SPC code.
+- **SPC** — the SPC CPU's full address space (includes the IPL
+  ROM at the top end).
+- **DSP** — the DSP register file.
+
+For this exercise, set Memory Type to **RAM**.
 
 ## Step through your code
 
-In the SPC debugger:
-
-1. Set a breakpoint at address `$0200` (the entry point of your
-   payload). In Mesen2, right-click on the line in the code view
+1. Open the **SPC Debugger** (Ctrl+F). Set a breakpoint at address
+   `$0200` — the entry point of your payload. Right-click on the
+   line in the disassembly pane and choose the breakpoint option,
    or use the breakpoint dialog.
-2. Run the emulator (F5 or the play button); it will hit the
+2. Run the emulator (**F5** or the play button). It will hit the
    breakpoint after the IPL upload completes.
-3. Open ARAM in the memory view. Navigate to address `$0500`.
-4. The current value should be `$00` (ARAM clears at boot).
-5. Step the SPC one instruction at a time using F10 or the
-   step-over button.
-6. Watch what changes after each step.
+3. Open **Memory Tools** (Ctrl+M). Set Memory Type to **RAM**.
+   Type `0500` into the address field at the top and press Enter
+   to jump to that byte.
+4. The current value at `$0500` should be `$00` (ARAM clears at
+   boot).
+5. Switch back to the SPC Debugger and step one instruction at a
+   time with **F10** (or the step-over button).
+6. After each step, glance at the Memory Tools window — `$0500`
+   stays `$00` until the second instruction (`mov $0500, a`)
+   executes, at which point it becomes `$42`.
 
 ## What you should see
 
-- After the first instruction, register A holds `$42`.
-- After the second instruction, ARAM `$0500` holds `$42`.
-- After the third instruction, the SPC is in the infinite loop and
-  PC oscillates between two adjacent addresses.
+- After the first instruction, register A (SPC Debugger pane)
+  holds `$42`.
+- After the second instruction, ARAM `$0500` (Memory Tools pane,
+  with Memory Type = RAM) holds `$42`.
+- After the third instruction, the SPC is in the infinite loop
+  and PC oscillates between two adjacent addresses.
 
 If you see all three, your toolchain is working and you can move
 on. If any step doesn't behave as described, see

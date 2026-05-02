@@ -4,9 +4,17 @@ The exercise is complete when **all** of the following are
 observable in Mesen2's SPC debugger after the SPC payload starts
 executing.
 
+> **Note on Mesen2 windows.** The SPC Debugger window shows CPU
+> registers and disassembly; the *Memory Tools* window (Debug →
+> Memory Tools, or Ctrl+M, on the main Mesen2 window) is what shows
+> ARAM bytes. The README's "Mesen2 windows you'll need" section
+> walks through opening Memory Tools and selecting Memory Type =
+> RAM; do that first if you haven't.
+
 ## PASS condition 1: ARAM at $0500 holds $42
 
-Open the ARAM memory view. Scroll to address `$0500`.
+In **Memory Tools** with Memory Type = **RAM**, jump to address
+`$0500`.
 
 ```
 PASS:  M(0x0500) == 0x42 after the second SPC instruction.
