@@ -7,10 +7,20 @@ build scripts, and reference solutions referenced by the book's
 hands-on exercises. The book treats this repo as a stable resource:
 each published edition pins to a tagged release.
 
-> **Status: pre-alpha.** Currently scaffolded for Chapters 5 and 13.
-> The complete asset set covering all hands-on chapters is in
-> progress. See `STATUS.md` for the coverage map and `VERIFICATION.md`
-> for the protocol that promotes the skeleton to v0.1.0.
+> **Status: v0.1.0** — Chapters 5 and 13 are end-to-end verified.
+> The remaining hands-on chapters are not yet scaffolded. See
+> `STATUS.md` for the coverage map and `VERIFICATION.md` for the
+> regression-test protocol.
+
+## Verified platforms
+
+As of v0.1.0, the asset path has been end-to-end verified on
+**Windows** with **Asar 1.91** and **Mesen2** (latest stable).
+Linux and macOS *should* work — both Asar and Mesen2 are
+cross-platform — but the build scripts and exact tool paths have
+not been tested on those platforms. If you verify on Linux or
+macOS, please open an issue or PR documenting any necessary
+adjustments.
 
 ## What is this for?
 

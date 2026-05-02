@@ -3,6 +3,14 @@
 You need three things: an assembler, an emulator, and the contents of
 this repository. None of them are large.
 
+> **Verified platforms.** As of v0.1.0, the asset path has been
+> end-to-end verified on **Windows** with **Asar 1.91** and
+> **Mesen2** (latest stable). Linux and macOS *should* work — both
+> Asar and Mesen2 are cross-platform — but the build scripts and
+> exact tool paths have not been tested on those platforms. If you
+> verify on Linux or macOS, please open an issue or PR documenting
+> any necessary adjustments.
+
 ## Asar (the assembler)
 
 Asar is a small command-line assembler with native SPC-700 support.
