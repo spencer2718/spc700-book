@@ -304,7 +304,64 @@ and Linux paths are not yet verified; readers on those platforms
 will be the first to exercise the build paths in
 `docs/INSTALL.md`.
 
+## Pass 5 — Reader-facing documentation cleanup
+
+Triggered by Spencer hitting two friction points during Pass 3
+(hardware verification): (1) the Chapter 5 README pointed at
+"the SPC debugger's memory view" for inspecting ARAM, but Mesen2
+puts the memory view in a separate Memory Tools window opened from
+the main window's Debug menu; (2) several docs still carried
+post-skeleton language (predicted byte sizes, removed directives,
+"no access to assembler") that drifted from the v0.1.0 reality.
+
+A second model (GPT) verified the exact Mesen2 menu paths,
+keyboard shortcuts, and Memory Type dropdown values by reading the
+Mesen2 source on GitHub. The corrected paths used here come from
+that pass, not from guesses.
+
+### Changes
+
+**`exercises/ch05_setup/README.md`** — Replaced the "Run" /
+"Step through your code" section. New text distinguishes the SPC
+Debugger window (CPU state, disassembly, breakpoints — Ctrl+F)
+from Memory Tools (raw byte view — Ctrl+M), gives the exact
+main-window menu paths, walks through setting Memory Type = RAM,
+and navigates the reader to address `$0500` for the PASS check.
+Notes that the two debugger windows are independent and typically
+kept open side by side.
+
+**`exercises/ch05_setup/PASS_CONDITIONS.md`** — Added a one-line
+note at the top pointing at the README's Memory Tools section.
+PASS condition 1 now references "Memory Tools with Memory Type =
+RAM" instead of a generic "ARAM memory view."
+
+**`docs/TROUBLESHOOTING.md`** — Added a new top section,
+"Mesen2 windows: which one shows what?", with a 4-row table of
+debugger windows and their menu paths / shortcuts and a list of
+Memory Type dropdown values. Updated the "ARAM doesn't show what
+I wrote" bullet so the first cause is "looking at the wrong
+window" with a pointer to the orientation section. Fixed the
+"black screen forever" section's stale `Debug > Sound > SPC` menu
+path to the actual `Debug → SPC Debugger` (Ctrl+F).
+
+**`VERIFICATION.md`** — Rewritten as a maintainer-facing
+regression-test document. Eight steps (1–4 static, 5–8 dynamic)
+referencing the actual current expected outputs (`stub.sfc` =
+262144 bytes, `hello.bin` = 8 bytes, `first_sound.bin` = 7945
+bytes, `sine.brr` regenerates byte-identical). The pre-Mesen2
+sanity checks added in Pass 2 are kept prominent. The "what
+success / almost-success looks like" prose was replaced with a
+`git bisect` recipe against the `v0.1.0` tag. Dropped the asset-
+author / initial-production framing.
+
+**`README.md` and `docs/INSTALL.md`** — Added a "Verified
+platforms" callout (top of README, near the top of INSTALL) noting
+that the verified path is Windows + Asar 1.91 + Mesen2 (latest
+stable), with an invitation for Linux and macOS users to file
+findings.
+
 ## Next steps
 
-`v0.1.0` is tagged. Future passes will add chapter exercises beyond
-the critical path, with planning to be done before scaffolding.
+`v0.1.0` is tagged and the reader-facing docs match the verified
+state. Future passes will add chapter exercises beyond the
+critical path, with planning to be done before scaffolding.
