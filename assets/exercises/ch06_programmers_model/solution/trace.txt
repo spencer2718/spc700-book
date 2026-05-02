@@ -1,0 +1,190 @@
+# Expected SPC debugger trace — Chapter 6
+
+This is what you should see in Mesen2's SPC Debugger and Memory
+Tools as you step through the payload. Use it to verify your own
+observations match the expected state at every instruction.
+
+## Initial state, immediately after IPL upload
+
+```
+PC  = $0200
+A   = $00
+X   = ?? (set by the SPC's IPL ROM during init)
+Y   = $00
+SP  = ?? (typically near $EF, set by the SPC's IPL)
+PSW = $02 (Z set, others undefined-but-typically-0)
+```
+
+ARAM at $0020, $0500, $01FE, $01FF: all `$00`.
+
+The exact X and SP values depend on what the IPL ROM did before
+handing off; what matters is that PC starts at $0200.
+
+## After step 1 — `mov x, #$ff` ($0200: CD FF)
+
+```
+PC = $0202
+X  = $FF       *** changed ***
+PSW.N = 1      ($FF has bit 7 set; N reflects the loaded value)
+PSW.Z = 0      (loaded value is non-zero)
+```
+
+A, Y, SP unchanged. ARAM unchanged.
+
+## After step 2 — `mov sp, x` ($0202: BD)
+
+```
+PC = $0203
+SP = $FF       *** changed ***
+```
+
+`mov sp, x` does not affect PSW. (It's a register-to-register
+move involving SP, which is treated as a system register here.)
+
+## After step 3 — `clrp` ($0203: 20)
+
+```
+PC = $0204
+PSW.P = 0      *** changed (or already 0) ***
+```
+
+P is now definitively 0. Direct-page references (8-bit operands)
+will resolve to $0000-$00FF.
+
+## After step 4 — `mov a, #$aa` ($0204: E8 AA)
+
+```
+PC = $0206
+A  = $AA       *** changed ***
+PSW.N = 1      ($AA has bit 7 set)
+PSW.Z = 0
+```
+
+## After step 5 — `mov x, #$bb` ($0206: CD BB)
+
+```
+PC = $0208
+X  = $BB       *** changed ***
+PSW.N = 1
+PSW.Z = 0
+```
+
+A still $AA.
+
+## After step 6 — `mov y, #$cc` ($0208: 8D CC)
+
+```
+PC = $020A
+Y  = $CC       *** changed ***
+PSW.N = 1
+PSW.Z = 0
+```
+
+A=$AA, X=$BB, Y=$CC.
+
+## After step 7 — `mov $20, a` ($020A: C4 20)
+
+```
+PC = $020C
+ARAM[$0020] = $AA   *** changed ***
+```
+
+A is unchanged (stores don't modify the source register). PSW
+unaffected. The opcode `C4` is the direct-page form (2 bytes).
+
+## After step 8 — `mov a, #$dd` ($020C: E8 DD)
+
+```
+PC = $020E
+A  = $DD       *** changed ***
+PSW.N = 1
+PSW.Z = 0
+```
+
+## After step 9 — `mov $0500, a` ($020E: C5 00 05)
+
+```
+PC = $0211
+ARAM[$0500] = $DD   *** changed ***
+```
+
+A is unchanged. The opcode `C5` is the absolute form (3 bytes;
+the address is little-endian: 00 05 = $0500).
+
+## After step 10 — `mov a, #$11` ($0211: E8 11)
+
+```
+PC = $0213
+A  = $11       *** changed ***
+PSW.N = 0      ($11 = %00010001; bit 7 clear)
+PSW.Z = 0
+```
+
+## After step 11 — `push a` ($0213: 2D)
+
+```
+PC = $0214
+SP = $FE              *** changed ***
+ARAM[$01FF] = $11     *** changed ***
+```
+
+A unchanged ($11). PSW unaffected by push. The order is: write to
+$0100+SP, then decrement SP. So $01FF gets the byte before SP
+moves to $FE.
+
+## After step 12 — `mov a, #$22` ($0214: E8 22)
+
+```
+PC = $0216
+A  = $22       *** changed ***
+PSW.N = 0      ($22 = %00100010; bit 7 clear)
+PSW.Z = 0
+```
+
+## After step 13 — `push a` ($0216: 2D)
+
+```
+PC = $0217
+SP = $FD              *** changed ***
+ARAM[$01FE] = $22     *** changed ***
+```
+
+A unchanged ($22).
+
+## After step 14 — `pop a` ($0217: AE)
+
+```
+PC = $0218
+SP = $FE              *** changed ***
+A  = $22              (loaded from ARAM[$01FE]; matches what was there)
+PSW.N = 0             ($22 has bit 7 clear)
+PSW.Z = 0
+```
+
+ARAM at $01FE is **still $22**. POP increments SP and loads from
+the new top; it does not erase the byte. ARAM at $01FF is still
+$11 — that byte was never popped.
+
+## After step 15 — `bra forever` ($0218: 2F FE)
+
+```
+PC = $0218     (back to the BRA — we are in the infinite loop)
+```
+
+Stepping further keeps PC at $0218.
+
+## Final state summary
+
+```
+A   = $22
+X   = $BB
+Y   = $CC
+SP  = $FE
+PSW.P = 0, PSW.N = 0, PSW.Z = 0
+PC  oscillates at $0218
+
+ARAM[$0020] = $AA
+ARAM[$0500] = $DD
+ARAM[$01FE] = $22  (popped, but not erased)
+ARAM[$01FF] = $11  (still on stack; never popped)
+```
