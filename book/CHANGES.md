@@ -5,6 +5,46 @@ This file tracks changes to the textbook source itself
 It is separate from `assets/CHANGES.md`, which tracks the
 companion exercise repository.
 
+## Pass B — write Chapter 5 prose; establish hands-on chapter template
+
+This pass replaces the Pass A placeholder with the full Chapter 5
+(Interlude: Setting Up) prose, and adds a "Try this" subsection at
+the end of Chapter 6 that points readers at the companion
+repository's `ch06_programmers_model/` exercise. The Chapter 6
+"Try this" structure becomes the template for every hands-on
+chapter from this point forward — future passes will mirror it
+without re-inventing the layout.
+
+### Chapter 5 (Interlude: Setting Up) full prose written
+
+The 17-line italic placeholder is replaced with a ~1400-word
+chapter that walks readers through installing Mesen2, Asar, and
+the companion repository, then exercises the full edit/build/run/
+step loop on a tiny SPC-700 program that writes a single byte to
+ARAM. The chapter has no end-of-chapter exercises because the
+chapter itself is the exercise.
+
+### "Try this" subsection added to Chapter 6
+
+A new `### Try this` subsection sits between Chapter 6's existing
+`### Exercises` and the chapter break. It points readers at
+`assets/exercises/ch06_programmers_model/` (a no-code exercise
+where readers single-step a ~25-byte payload through the SPC
+debugger to observe each piece of programmer-visible state change)
+and gives a concrete time estimate. The existing Chapter 6 prose
+and conceptual exercises are unchanged.
+
+### What was *not* changed in Pass B
+
+- The PDF was not regenerated. Pass C will rebuild it.
+- "Try this" was added only to Chapter 6. Future hands-on chapters
+  (7+) will get their own "Try this" subsections in later passes,
+  once their corresponding `assets/exercises/chXX_*/` directories
+  exist.
+- No assets/ files were touched.
+- No existing chapter prose was edited beyond the Chapter 5
+  placeholder replacement and the Chapter 6 subsection insertion.
+
 ## Pass A — broaden audience, restructure for hands-on companion
 
 This pass reframes the book to admit readers without prior

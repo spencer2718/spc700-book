@@ -1195,6 +1195,33 @@ When an instruction executes, it modifies some of these state components. By Par
 4. Suppose SP = `$F0`. Where in memory is the next byte that will be pushed? After the push, what's the new SP?
 5. Why is it dangerous to set P = 1?
 
+### Try this
+
+The companion repository's
+`assets/exercises/ch06_programmers_model/` is a hands-on exercise
+that puts every concept from this chapter under your microscope.
+There's no code to write; the exercise ships with a complete
+~25-byte payload that exercises the stack pointer, `clrp`, A/X/Y,
+direct vs. absolute writes, and PUSH/POP in sequence. Your job is
+to single-step through it in Mesen2's SPC Debugger, with Memory
+Tools open alongside, and watch each promised state change happen.
+
+The exercise's `README.md` has a step-by-step walkthrough. The
+emphasis is *observation*: by the end you should have seen,
+empirically, that the abstract framework from this chapter (state
+= A, X, Y, SP, PSW, PC, M) corresponds to real bytes you can read
+in the debugger.
+
+After working through it, the README's "Try this" section asks you
+to predict what would happen if the stack pointer setup were
+omitted, then verify your prediction. That's an open exploration
+worth fifteen minutes — it tests whether you've internalized that
+"the stack lives at `$0100 + SP`" is a *convention* the chip
+doesn't enforce, not a hardware rule.
+
+Time investment: 30-45 minutes if it's your first hands-on chapter
+after the Interlude; less once you're fluent with the debugger.
+
 ---
 
 
