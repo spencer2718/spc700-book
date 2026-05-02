@@ -5,6 +5,50 @@ This file tracks changes to the textbook source itself
 It is separate from `assets/CHANGES.md`, which tracks the
 companion exercise repository.
 
+## Pass D — auto-commit regenerated PDF on push to main
+
+After Pass C/C-fix the CI workflow built the PDF on every push
+but only published it as a workflow artifact. Anyone wanting the
+latest PDF had to navigate to Actions → run → Artifacts → unzip,
+and the in-repo `book/spc700_textbook.pdf` went stale until
+someone manually downloaded and committed it. This pass closes
+the loop.
+
+### Workflow change
+
+`.github/workflows/book-pdf.yml` now has a final step,
+"Commit regenerated PDF to main", that runs only on push events
+to `main` (not pull requests, not tags, not workflow_dispatch).
+The step configures a bot identity (`spc700-book-ci`,
+ci@noreply.github.com), stages `book/spc700_textbook.pdf`, and
+checks whether the staged change is non-empty. If the rebuilt
+PDF is byte-identical to the one already on `main`, the step
+exits cleanly without committing — avoiding no-op commits when
+only the workflow itself or a non-content file changed.
+
+If the PDF differs, the bot commits with the message
+`ci: regenerate book/spc700_textbook.pdf [skip ci]` (the
+`[skip ci]` tag prevents the bot's own commit from re-triggering
+the workflow) and pushes back to `main`. The commit body
+references the human commit SHA that triggered the rebuild, so
+the audit trail makes clear which content change produced this
+PDF.
+
+### Bot identity
+
+PDF refresh commits will appear in `git log` authored by
+`spc700-book-ci <ci@noreply.github.com>`. Humans skimming the
+log can immediately distinguish bot commits from author commits
+by the author name and the `ci:` prefix on the subject line.
+
+### README update
+
+The top-level `README.md` "Building the book" section now
+explains the auto-rebuild loop: pushes to main rebuild and
+commit the PDF back to main automatically; local `./build.sh`
+is for previewing before pushing rather than for keeping the
+in-repo PDF current.
+
 ## Pass C — formalize the PDF build system
 
 Until this pass, the PDF was produced by a manual Pandoc command

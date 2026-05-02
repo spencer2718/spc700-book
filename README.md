@@ -31,16 +31,18 @@ cd book
 ./build.sh
 ```
 
-`book/spc700_textbook.pdf` is the manually-maintained current
-rendering. Run `./build.sh` after editing `book/spc700_textbook.md`
-to update it. See `book/SYSTEM_DEPENDENCIES.md` for the Pandoc /
-XeLaTeX / fonts install.
+After every push to `main` that touches `book/` contents, CI
+rebuilds `book/spc700_textbook.pdf` and commits the updated PDF
+back to `main` (under the `spc700-book-ci` bot identity, with
+`[skip ci]` in the commit message to avoid re-triggering itself).
+The in-repo PDF is therefore always the current rendering of the
+source — no manual download needed.
 
-CI verifies that every push touching `book/` produces a buildable
-PDF. The CI does not commit the rendered PDF back to the repo —
-the in-tree PDF is updated manually between revision passes. If a
-push breaks the build, the failed `Build textbook PDF` workflow on
-GitHub Actions is the diagnostic.
+You can build locally with `cd book && ./build.sh` if you want to
+preview before pushing. See `book/SYSTEM_DEPENDENCIES.md` for the
+Pandoc / XeLaTeX / fonts install. If a push breaks the build, the
+failed `Build textbook PDF` workflow on GitHub Actions is the
+diagnostic.
 
 ### The exercises
 
