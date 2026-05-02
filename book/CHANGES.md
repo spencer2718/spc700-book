@@ -5,6 +5,95 @@ This file tracks changes to the textbook source itself
 It is separate from `assets/CHANGES.md`, which tracks the
 companion exercise repository.
 
+## Pass C — formalize the PDF build system
+
+Until this pass, the PDF was produced by a manual Pandoc command
+documented in the top-level README, against a preprocessor whose
+input and output paths were hardcoded to `/home/claude/...`
+absolute paths inherited from the conversation environment in
+which it was first written. The build was effectively unreproducible
+outside that environment. This pass formalizes the build so that
+any contributor — and the GitHub Actions runner — can rebuild the
+PDF from the Markdown source.
+
+### Path-portable preprocessor
+
+`book/preprocess.py` now resolves its input and output paths
+relative to its own location (`Path(__file__).resolve().parent`)
+rather than hardcoded absolutes. The transformation pipeline is
+unchanged. The script reads `spc700_textbook.md` from `book/` and
+writes `spc700_textbook_processed.md` next to it.
+
+### Build script and Makefile
+
+- `book/build.sh` — runs the preprocessor, then Pandoc + XeLaTeX
+  with the same options the manual command used. Fail-loud
+  (`set -euo pipefail`), works from any working directory, and
+  reports the resulting PDF's size on success. Also probes for
+  `python3` vs. `python` so it works on Linux/macOS and on Git
+  Bash under Windows.
+- `book/Makefile` — `make build` and `make clean` wrappers.
+
+### Requirements documentation
+
+- `book/requirements.txt` — empty placeholder. The preprocessor
+  uses only the standard library; the file documents that and
+  gives a place for future dependencies to land.
+- `book/SYSTEM_DEPENDENCIES.md` — describes the Pandoc / XeLaTeX
+  / TeX Live / fonts requirements with one-line install commands
+  for Ubuntu, macOS, and Windows.
+
+### CI workflow
+
+`.github/workflows/book-pdf.yml` builds the PDF on every push to
+`main` and every pull request that touches `book/` or the
+workflow itself. It uses the official `pandoc/latex:3.1` Docker
+image so we don't pay TeX Live install time per run, and uploads
+the resulting PDF as a workflow artifact named
+`spc700-textbook-pdf`. The workflow does **not** commit the
+rebuilt PDF back to the repository; the in-tree PDF is
+maintained manually between revision passes. The workflow's
+purpose is to catch the moment the build breaks, not to ship
+the artifact.
+
+### .gitignore for build intermediates
+
+A root-level `.gitignore` now excludes
+`book/spc700_textbook_processed.md` and the LaTeX
+`.aux`/`.log`/`.toc`/`.out` intermediates. The PDF stays tracked.
+
+### README update
+
+The top-level `README.md` now points at `cd book && ./build.sh`
+rather than the multi-line Pandoc command, references
+`book/SYSTEM_DEPENDENCIES.md` for install details, and explains
+the CI's role (verify, don't ship). The book-stats line was also
+updated to "19 chapters, 6 appendices" to match the post-Pass-A
+structure.
+
+### Pass-A loose end fixed
+
+The hardcoded title in `book/preamble.tex`'s custom title page
+still read "for Aspiring SNES Musicians" after Pass A shortened
+the title in `metadata.yaml`. Pass A only updated YAML and the
+preprocessor's title-stripping regex; the hardcoded LaTeX title
+page was missed. Updated to "for SNES Musicians" so the next
+PDF rebuild's title page matches the metadata title.
+
+### What was *not* changed in Pass C
+
+- The PDF in `book/spc700_textbook.pdf` was not regenerated
+  locally. Pandoc and XeLaTeX are not installed on the build
+  environment used for this pass; the first CI run after these
+  commits land is the first end-to-end build verification. If
+  CI succeeds, a follow-up pass can manually regenerate and
+  commit the PDF; if CI fails, the failure output diagnoses
+  what to fix.
+- No textbook source content was edited.
+- The `book/preamble.tex` change is the only LaTeX change and
+  is purely a string update; the preamble's structure and
+  packages are unchanged.
+
 ## Pass B — write Chapter 5 prose; establish hands-on chapter template
 
 This pass replaces the Pass A placeholder with the full Chapter 5
