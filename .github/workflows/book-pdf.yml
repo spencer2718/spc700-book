@@ -4,35 +4,52 @@ on:
   push:
     branches: [main]
     paths:
-      - 'book/**'
-      - '.github/workflows/book-pdf.yml'
+      - "book/**"
+      - ".github/workflows/book-pdf.yml"
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     paths:
-      - 'book/**'
-      - '.github/workflows/book-pdf.yml'
+      - "book/**"
+      - ".github/workflows/book-pdf.yml"
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Pandoc, XeLaTeX, and fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pandoc \
+            texlive-xetex \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-pictures \
+            lmodern \
+            fonts-texgyre \
+            fonts-dejavu \
+            fontconfig
+          fc-match "TeX Gyre Pagella"
+          fc-match "TeX Gyre Heros"
+          fc-match "DejaVu Sans Mono"
 
       - name: Preprocess Markdown
         run: python3 book/preprocess.py
 
-      - name: Build PDF (pandoc + xelatex)
-        uses: docker://pandoc/latex:3.1
-        with:
-          args: >-
-            book/spc700_textbook_processed.md
-            --metadata-file=book/metadata.yaml
-            --include-in-header=book/preamble.tex
-            --pdf-engine=xelatex
-            --toc --toc-depth=2
-            --top-level-division=part
+      - name: Build PDF
+        run: |
+          pandoc book/spc700_textbook_processed.md \
+            --metadata-file=book/metadata.yaml \
+            --include-in-header=book/preamble.tex \
+            --pdf-engine=xelatex \
+            --toc --toc-depth=2 \
+            --top-level-division=part \
             -o book/spc700_textbook.pdf
 
       - name: Upload PDF artifact

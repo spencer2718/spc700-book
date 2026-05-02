@@ -94,7 +94,27 @@ PDF rebuild's title page matches the metadata title.
   is purely a string update; the preamble's structure and
   packages are unchanged.
 
-## Pass B — write Chapter 5 prose; establish hands-on chapter template
+### Pass C-fix — switch CI from pandoc/latex Docker image to runner-based apt install
+
+The first CI run after Pass C landed failed during XeLaTeX with
+`! Package fontspec Error: The font "TeX Gyre Pagella" cannot be
+found`. The `pandoc/latex:3.1` Docker image is the minimal Pandoc
++ LaTeX image and does not bundle TeX Gyre or DejaVu fonts, both
+of which `metadata.yaml` selects by name through `fontspec`. The
+`pandoc/extra` image is not a clean substitute (its package
+manifest does not list TeX Gyre or DejaVu, and the 3.1 tag isn't
+currently published on `extra`).
+
+`.github/workflows/book-pdf.yml` was rewritten to install Pandoc,
+XeLaTeX, and the fonts directly on `ubuntu-latest` via
+`apt-get`. The package list is: `pandoc`, `texlive-xetex`,
+`texlive-latex-recommended`, `texlive-latex-extra`,
+`texlive-fonts-recommended`, `texlive-pictures`, `lmodern`,
+`fonts-texgyre`, `fonts-dejavu`, `fontconfig`. The install step
+ends with three `fc-match` calls against the named fonts so a
+missing font fails fast and prints a helpful diagnostic rather
+than blowing up several minutes later inside XeLaTeX. Package
+list rationale courtesy of an external GPT review.
 
 This pass replaces the Pass A placeholder with the full Chapter 5
 (Interlude: Setting Up) prose, and adds a "Try this" subsection at
