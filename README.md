@@ -1,10 +1,10 @@
 # SNES Book Monorepo
 
-Two co-evolving artifacts for *The SPC-700 for Aspiring SNES Musicians*:
+Two co-evolving artifacts for *The SPC-700 for SNES Musicians*:
 
 - **`book/`** — the textbook (Markdown source, XeLaTeX build pipeline,
-  rendered PDF). 188 pages, 18 chapters, 5 appendices, ~38k words.
-  Builds to PDF via Pandoc + XeLaTeX.
+  rendered PDF). 19 chapters, 6 appendices. Builds to PDF via
+  Pandoc + XeLaTeX.
 - **`assets/`** — the companion code repository. Stub ROM, exercise
   starters and solutions, BRR samples, build scripts, conventions,
   memory map, and verification protocol. Pre-alpha; scaffolded for
@@ -28,18 +28,19 @@ single-repo discipline is simpler.
 
 ```sh
 cd book
-python3 preprocess.py
-pandoc spc700_textbook_processed.md \
-    --metadata-file=metadata.yaml \
-    --include-in-header=preamble.tex \
-    --pdf-engine=xelatex \
-    --toc --toc-depth=2 \
-    --top-level-division=part \
-    -o spc700_textbook.pdf
+./build.sh
 ```
 
-Requirements: Pandoc 3.x, XeLaTeX (TeX Live or MiKTeX), `lmodern`
-package.
+`book/spc700_textbook.pdf` is the manually-maintained current
+rendering. Run `./build.sh` after editing `book/spc700_textbook.md`
+to update it. See `book/SYSTEM_DEPENDENCIES.md` for the Pandoc /
+XeLaTeX / fonts install.
+
+CI verifies that every push touching `book/` produces a buildable
+PDF. The CI does not commit the rendered PDF back to the repo —
+the in-tree PDF is updated manually between revision passes. If a
+push breaks the build, the failed `Build textbook PDF` workflow on
+GitHub Actions is the diagnostic.
 
 ### The exercises
 
