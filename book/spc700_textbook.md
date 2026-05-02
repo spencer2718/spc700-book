@@ -10,7 +10,13 @@ This book teaches you how to write music for the Super Nintendo. Not in the sens
 
 That ambition has a real cost: most of this book is not about music. It is about a small chip called the SPC-700, which runs at one megahertz and has sixty-four kilobytes of memory, and which the SNES uses to do nothing but produce sound. To write music for it, you have to understand what kind of thing it is, what it can be told to do, and what it cannot. That requires understanding what a chip *is*, what its memory looks like, and what "telling it to do" something means. Most of this book is about that.
 
-I'm assuming you can do mathematics — you'll see notation like "M(a) = v" and equations like "frequency = pitch × 32000 / 0x1000" without flinching. I'm assuming, on the other hand, that you have not written software in a long time. You may have written some code in a beginning programming course years ago and may remember some of it, but you would not currently describe yourself as a programmer. That's fine. We will not lean on programming experience you may or may not have.
+I assume mathematical comfort, not programming experience. You should
+be willing to read notation like "M(a) = v" and equations like
+"frequency = pitch × 32000 / 0x1000" without treating them as
+decorative. But I do not assume that you know assembly language,
+systems programming, or even the basic vocabulary of CPUs. If you have
+programmed before, that will help in places; if you have not, the book
+will build the needed concepts from the ground up.
 
 I am specifically not going to assume:
 
@@ -28,7 +34,19 @@ What you will know by the end:
 - how compressed audio samples (BRR format) work
 - what a sound driver is, and how the modern composing tools fit into the picture
 
-Read in order. The book builds.
+This book also has a companion repository:
+
+https://github.com/spencer2718/spc700-book
+
+Starting in Chapter 5, some chapters include hands-on exercises that
+use the repository's stub ROM, SPC-700 source files, BRR samples, and
+verification notes. The printed text explains the concepts; the
+repository gives you the small programs to assemble, run, break, and
+inspect. You do not need the repository for the first four chapters.
+You will need it once the book turns from explanation to observation.
+
+Read in order. The book builds, and beginning in Chapter 5 the
+exercises build with it.
 
 A note on sources. The SNES audio system was reverse-engineered by a community of enthusiasts over decades. The two foundational references are the SNESdev wiki and Martin Korth's *fullsnes* document, and where this book describes precise hardware behavior, it is summarizing those. You should read them yourself once this book has prepared you to.
 
