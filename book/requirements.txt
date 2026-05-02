@@ -1,0 +1,6 @@
+# No external Python dependencies.
+# The preprocessor (preprocess.py) uses only the standard library
+# (re, pathlib).
+#
+# If future preprocessor steps add external deps, list them here
+# pinned to a known-working version.
