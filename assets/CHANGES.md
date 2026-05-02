@@ -360,8 +360,52 @@ that the verified path is Windows + Asar 1.91 + Mesen2 (latest
 stable), with an invitation for Linux and macOS users to file
 findings.
 
+## Pass 6 — Chapter 6 exercise (Programmer's Model)
+
+Added `exercises/ch06_programmers_model/` with the same layout
+shape as ch05 and ch13: README, PASS_CONDITIONS, `start/` with
+the payload + build.sh, `solution/` with an identical payload
+plus `trace.txt`. Builds clean: 26-byte payload, stub.sfc still
+262144 bytes when wrapped.
+
+### Why this exercise has no TODOs
+
+Chapter 6 is the first exercise to use an **observational**
+pattern instead of fill-in-the-blank. The reader runs a complete
+26-byte payload that exercises each concept in the chapter —
+stack pointer setup, `clrp`, register loads, direct-page vs.
+absolute writes, push/pop — and watches state change in the SPC
+Debugger and Memory Tools windows. The starter and solution
+files are byte-identical for this reason.
+
+This pattern fits Chapter 6 specifically: the chapter's content
+(six visible registers, eight flags, memory map, direct-page
+semantics) is *perceptual* — there's no missing instruction the
+reader has to figure out, only a correspondence between the
+abstract framework and observable bytes that the reader needs to
+internalize. Chapter 5's edit-build-run-step loop established
+the workflow; Chapter 6 deepens the *step* part of that loop
+without adding a new editing skill.
+
+A "Try this" section at the end of the README asks the reader to
+predict (without committing) what would happen if the SP setup
+were omitted, then to delete those two instructions, rebuild, and
+verify the prediction. That covers the same pedagogical point as
+a separate broken-variant file would, without doubling the file
+count.
+
+### Chapter numbering note
+
+The asset directory uses `ch06_programmers_model/`, but the
+current PDF of the book still calls this material "Chapter 5: The
+Programmer's Model" — the new "Interlude: Setting Up" hasn't
+been inserted into the book yet. The README's "Note on chapter
+numbering" section explains this for readers; a future book-side
+pass will renumber the textbook chapters and remove the note.
+
 ## Next steps
 
-`v0.1.0` is tagged and the reader-facing docs match the verified
-state. Future passes will add chapter exercises beyond the
-critical path, with planning to be done before scaffolding.
+The critical-path exercises (5, 13) plus the first non-critical
+exercise (6) are scaffolded. Spencer to verify Chapter 6 in
+Mesen2; the rest of the chapters await planning before
+scaffolding.

@@ -13,7 +13,7 @@ path exercises.
 | Ch | Title                                   | Asset status            | Verified? |
 |---:|-----------------------------------------|-------------------------|-----------|
 | 5  | Interlude: Setting Up                   | scaffolded, builds clean| yes       |
-| 6  | The Programmer's Model                  | not started             | no        |
+| 6  | The Programmer's Model                  | scaffolded, builds clean| no        |
 | 7  | Boot and Code Loading                   | not started             | no        |
 | 8  | Moving Data                             | not started             | no        |
 | 9  | Arithmetic                              | not started             | no        |
