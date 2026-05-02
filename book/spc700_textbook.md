@@ -815,21 +815,222 @@ Read these in order. Each chapter assumes the previous ones.
 
 ## Chapter 5: Interlude — Setting Up
 
-*This chapter is forthcoming. It will walk through installing Asar
-and Mesen2, cloning the companion repository at
-https://github.com/spencer2718/spc700-book, and running your first
-small SPC-700 program end-to-end — assembling a payload, embedding
-it in a stub ROM, loading the ROM in Mesen2, and stepping through
-the SPC's response in the debugger. The chapter is short and
-hands-on; readers who finish it have a working development
-environment and have observed the SPC-700 executing code under
-their direction for the first time.*
+You have spent four chapters reading. We are about to spend the
+next fifteen reading and *doing*. This is a short interlude that
+sets up the doing.
 
-*Until this chapter is written, readers can skip directly to Chapter
-6 (The Programmer's Model) and pick up the lab workflow when later
-chapters reference it, OR can install the tooling now by following
-the companion repository's README and running the
-`exercises/ch05_setup/` exercise directly.*
+By the end of this chapter you will have:
+
+- A SNES emulator with a working SPC debugger installed.
+- An SPC-700 assembler installed.
+- The book's companion repository on your machine.
+- Built and run a tiny SPC program of your own.
+- Watched a single byte change in front of you, in the emulator,
+  as a result of an instruction you wrote.
+
+That last one is the point. Until now, the SPC-700 has been an idea.
+By the end of this chapter, it will be a thing you have caused to do
+something.
+
+This chapter has no exercises at the end because the chapter *is*
+the exercise.
+
+### What you'll install
+
+Three things, all free.
+
+**Mesen2** is a SNES emulator with a thorough debugger. It will let
+you load a SNES ROM, watch the SPC-700 execute one instruction at a
+time, inspect every byte of audio RAM, and see the audio chip's
+internal state. Mesen2 is the recommended emulator for this book and
+for the SNES homebrew scene generally; you can get it at
+<https://www.mesen.ca>.
+
+**Asar** is an SPC-700 assembler — the program that takes assembly
+language source files and turns them into the byte sequences a CPU
+actually executes. It also handles the 65816 (the SNES main CPU)
+side, which we will not be writing ourselves but which the
+companion repository's "stub ROM" uses behind the scenes. You can
+get Asar at <https://github.com/RPGHacker/asar/releases>.
+
+**The companion repository** holds the small SPC-700 source files,
+build scripts, BRR audio samples, and verification notes that go
+with this book. Clone it from
+<https://github.com/spencer2718/spc700-book> with a Git client.
+
+The repository's `assets/docs/INSTALL.md` has detailed
+platform-specific instructions for Mesen2 and Asar (Windows, Linux,
+macOS). Follow those for the install. The rest of this chapter
+assumes you have all three.
+
+### What the stub ROM is, and why you don't have to write 65816
+
+The SPC-700 lives inside the SNES. To run an SPC-700 program on a
+real SNES — or on Mesen2, which faithfully emulates one — you have
+to give the SNES a ROM cartridge. The SNES's main CPU boots, reads
+the cartridge, and at some point uses the four-byte mailbox we'll
+meet in Chapter 16 to upload your SPC-700 code into ARAM. Only
+*then* does the SPC-700 start running it.
+
+The companion repository contains a small SNES ROM whose only job
+is to perform that upload and then idle. It's called the **stub
+ROM**, and it's a few hundred lines of 65816 assembly. The stub ROM
+is a *cradle*: it boots, hands your SPC-700 code to the SPC-700,
+and gets out of the way.
+
+You will not be writing or modifying 65816 code in this book. The
+stub ROM exists so that you can write SPC-700 code, hand it to the
+stub, and have a real SNES ROM (a `.sfc` file) you can load in
+Mesen2. From your point of view as a reader, the stub is invisible
+machinery.
+
+### Your first SPC-700 program
+
+The companion repository ships with the source we will use as your
+first program. Open
+`assets/exercises/ch05_setup/start/hello.asm` in a text editor.
+You should see something like this:
+
+```asm
+arch spc700
+norom
+
+org $0000
+base $0200
+
+start:
+    mov   x, #$ff       ; X = $FF
+    mov   sp, x         ; SP = $FF
+    clrp                ; PSW.P = 0 (direct page = $0000-$00FF)
+
+    mov   a, #$42       ; A = $42
+    ; TODO: write A to ARAM address $0500
+
+forever:
+    bra   forever
+```
+
+The lines starting with `mov` and `clrp` and `bra` are SPC-700
+assembly instructions. We have not formally introduced any of them
+yet — the next chapter does that — but they are simple enough that
+you can read what they intend.
+
+There is one missing line, marked `TODO`. Your job, before going
+further, is to write that line.
+
+What we want is the byte `$42` (which the previous instruction has
+placed in register A) to be written to ARAM address `$0500`. We
+need an SPC-700 instruction with the form
+mov   <destination>, <source>
+
+where `<destination>` is an absolute memory address and `<source>`
+is the A register. The destination address is `$0500`, and the
+source register is `a`. Stop reading and try to write the line.
+
+(If you are completely new to assembly, the format is `mov $0500,
+a` — destination first, source second. SPC-700 follows the
+"destination, source" convention.)
+
+Replace the `TODO` line with the instruction. Save the file.
+
+### Building it
+
+You now run two short commands in your shell.
+
+First, from inside `assets/exercises/ch05_setup/start/`:
+
+```sh
+./build.sh
+```
+
+This runs Asar on `hello.asm` and produces `hello.bin`, a tiny
+binary file containing the assembled SPC-700 machine code.
+
+Second, from inside `assets/stub-rom/`:
+
+```sh
+./build.sh ../exercises/ch05_setup/start/hello.bin
+```
+
+This runs Asar on the stub ROM source, embedding your `hello.bin`
+into the larger ROM. It produces `stub.sfc`, a complete SNES ROM
+file.
+
+You now have a real SNES ROM, with your SPC-700 code embedded in
+it, ready to run.
+
+### Running it
+
+Open Mesen2. Use **File → Open ROM** and select `stub.sfc`.
+
+The screen will be black. This is correct. The stub ROM does not
+draw anything; its only job is to upload your code to the SPC-700
+and idle. The action is happening on the audio CPU, which has no
+visual presence.
+
+Two debugger windows are relevant. Both open from the *main*
+Mesen2 window's Debug menu (not from any sub-window's menu):
+
+- **SPC Debugger** (Debug → SPC Debugger, or `Ctrl+F`): shows the
+  SPC's current execution state. You'll see a panel with PC, A, X,
+  Y, SP, and PSW; a disassembly view; and execution controls
+  (step, run, breakpoint).
+- **Memory Tools** (Debug → Memory Tools, or `Ctrl+M`): shows raw
+  memory as bytes. You'll use this to inspect ARAM.
+
+Open both. Position them side by side if you can.
+
+In the SPC Debugger, set a breakpoint at address `$0200` — that's
+where your code begins. The simplest way is to right-click on the
+line in the disassembly view that corresponds to `$0200` (or to
+type `0200` into a breakpoint dialog if Mesen2 offers one). Then
+press the run button (or F5).
+
+The emulator runs. The stub ROM boots, sends your SPC-700 code to
+the SPC, and the SPC starts executing — but the breakpoint catches
+it at the first instruction. The SPC Debugger now shows PC = `$0200`
+and your code in the disassembly.
+
+In the Memory Tools window, set **Memory Type = RAM**. This selects
+the SPC's 64 KiB ARAM. Type `0500` into the address field and
+press Enter. The view jumps to address `$0500`. The byte there is
+`$00` (memory is zero on a fresh boot).
+
+Press F10 (step) once. PC advances from `$0200` to `$0203` (the
+length of the first instruction `mov x, #$ff`). X has changed.
+Step again. PC advances; SP has changed. Step again. PC advances;
+PSW has changed slightly (the P flag). Step again. PC advances;
+A is now `$42`. Step *one more time* and look at Memory Tools.
+
+The byte at `$0500` is now `$42`.
+
+You just caused the SPC-700 to execute an instruction that wrote
+to memory, and you watched the result happen.
+
+### What just happened
+
+You wrote SPC-700 source code in a text editor. An assembler
+translated it to machine code. A second build wrapped it in a SNES
+ROM. An emulator booted that ROM, the SNES uploaded your code to
+the SPC-700, and the SPC-700 ran it. You watched the chip's state
+change one instruction at a time.
+
+This is the loop. **Edit. Build. Run. Step.** Every chapter from
+here on will return to this loop. The SPC programs will get larger
+and more interesting. But the mechanics — write some assembly, run
+two build commands, load `stub.sfc` in Mesen2, look at registers
+and memory — are the mechanics throughout.
+
+If something didn't work, the companion repository's
+`assets/docs/TROUBLESHOOTING.md` is the place to start. Most
+problems at this stage are tooling-related (a path is wrong, a
+shell isn't finding `asar`, a Mesen2 setting is off) rather than
+about the SPC-700 itself.
+
+When you can run the loop smoothly — edit a file, see the result in
+Mesen2 within a minute or two — you are ready for Chapter 6, which
+formally introduces the SPC-700's registers and the categories of
+instructions you will spend Part II learning.
 
 ---
 
