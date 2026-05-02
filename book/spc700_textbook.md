@@ -1,4 +1,4 @@
-# The SPC-700 for Aspiring SNES Musicians
+# The SPC-700 for SNES Musicians
 
 *Computer architecture, audio synthesis, and the small chip inside a 1990 video game console — taught from first principles, in the service of making music.*
 

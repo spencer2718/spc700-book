@@ -7,7 +7,7 @@ with open('/home/claude/spc700_textbook.md', 'r') as f:
     text = f.read()
 
 # 1. Strip top-level title and italic subtitle (we'll put them in YAML)
-text = re.sub(r'^# The SPC-700 for Aspiring SNES Musicians\s*\n+', '', text, count=1)
+text = re.sub(r'^# The SPC-700 for SNES Musicians\s*\n+', '', text, count=1)
 text = re.sub(r'^\*Computer architecture[^*]+\*\s*\n+---\s*\n+', '', text, count=1)
 
 # 2. Strip "Chapter N: " prefix from chapter headings
