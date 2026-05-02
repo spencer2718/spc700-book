@@ -373,7 +373,7 @@ We change PC. Some instructions, called **jumps** or **branches**, exist specifi
 
 A jump is unconditional — it always writes the new PC. A **conditional branch** writes the new PC only if some condition is true (usually, only if a particular flag in PSW is set or clear). A conditional branch is therefore the way the CPU implements "if statements," "loops," and any decision-making at all.
 
-We'll cover jumps and branches in detail in Chapter 10. For now, the picture is: PC moves linearly forward unless an instruction explicitly tells it to move somewhere else.
+We'll cover jumps and branches in detail in Chapter 11. For now, the picture is: PC moves linearly forward unless an instruction explicitly tells it to move somewhere else.
 
 ### The stack
 
@@ -661,7 +661,7 @@ The main CPU is a Ricoh 5A22, a customized 16-bit processor running at up to abo
 
 The audio subsystem is, internally, a separate small computer. Its CPU is the **SPC-700**, running at 1.024 MHz. Sitting next to the SPC-700 is a sound generator chip called the **S-DSP** (Digital Signal Processor), which actually produces the audio waveform. Connected to both is **64 KiB of RAM**, called **ARAM** (Audio RAM), which holds the SPC's program, its data, and the audio samples it plays.
 
-The audio subsystem is physically separate from the main CPU. The two CPUs do not share memory: the main CPU cannot directly read or write ARAM, and the SPC-700 cannot directly read or write the cartridge or the main CPU's RAM. They communicate only through a four-byte mailbox we'll cover in Chapter 15.
+The audio subsystem is physically separate from the main CPU. The two CPUs do not share memory: the main CPU cannot directly read or write ARAM, and the SPC-700 cannot directly read or write the cartridge or the main CPU's RAM. They communicate only through a four-byte mailbox we'll cover in Chapter 16, Inter-CPU Communication.
 
 A picture:
 
@@ -749,7 +749,7 @@ Either side can read or write any of the four ports. There is no signal, no inte
 
 Two important uses of this mailbox:
 
-**At boot.** When the SNES is first powered on, the SPC runs a tiny program from its boot ROM that uses the four ports to receive its main program from the main CPU. The main CPU sends the SPC's code, byte by byte, over this 4-byte channel. We'll see the protocol in detail in Chapter 15.
+**At boot.** When the SNES is first powered on, the SPC runs a tiny program from its boot ROM that uses the four ports to receive its main program from the main CPU. The main CPU sends the SPC's code, byte by byte, over this 4-byte channel. We'll see the protocol in detail in Chapter 16.
 
 **At runtime.** Once the SPC is running its sound driver, the main CPU uses the ports to send commands — "play song 3," "play sound effect 12," "stop the music." The SPC polls the ports, sees a new command, and responds.
 
@@ -806,14 +806,34 @@ We now have the picture. Time to start writing code.
 
 Part II walks through the SPC-700's specific registers, its memory map, and its instruction set, in roughly the order you need them to write a working program. By the end you will be able to read any SPC-700 disassembly and know, line by line, what the chip is being told to do.
 
-There are six chapters. Chapter 5 covers the SPC-700's specific registers and memory layout (filling in the abstract picture of Chapter 2 with concrete details). Chapter 6 covers how code gets into the chip in the first place — boot and upload. Chapters 7 through 10 cover the instruction set, organized by what the instructions do: moving data, arithmetic, logic, control flow.
+There are seven chapters. Chapter 5 is a short interlude that walks you through the tooling — Mesen2, Asar, and the companion repository — so that the rest of Part II can show you real SPC-700 behavior rather than only describe it. Chapter 6 covers the SPC-700's specific registers and memory layout (filling in the abstract picture of Chapter 2 with concrete details). Chapter 7 covers how code gets into the chip in the first place — boot and upload. Chapters 8 through 11 cover the instruction set, organized by what the instructions do: moving data, arithmetic, logic, control flow.
 
 Read these in order. Each chapter assumes the previous ones.
 
 ---
 
 
-## Chapter 5: The Programmer's Model
+## Chapter 5: Interlude — Setting Up
+
+*This chapter is forthcoming. It will walk through installing Asar
+and Mesen2, cloning the companion repository at
+https://github.com/spencer2718/spc700-book, and running your first
+small SPC-700 program end-to-end — assembling a payload, embedding
+it in a stub ROM, loading the ROM in Mesen2, and stepping through
+the SPC's response in the debugger. The chapter is short and
+hands-on; readers who finish it have a working development
+environment and have observed the SPC-700 executing code under
+their direction for the first time.*
+
+*Until this chapter is written, readers can skip directly to Chapter
+6 (The Programmer's Model) and pick up the lab workflow when later
+chapters reference it, OR can install the tooling now by following
+the companion repository's README and running the
+`exercises/ch05_setup/` exercise directly.*
+
+---
+
+## Chapter 6: The Programmer's Model
 
 Chapter 2 introduced the abstract notion of registers, flags, and memory. This chapter says exactly which registers, which flags, and which memory layout the SPC-700 has. It is the foundation everything else in Part II will sit on, so it's worth reading carefully.
 
@@ -915,17 +935,17 @@ These hardware-facing addresses at `$F0-$FF` are the SPC's window onto the rest 
 | `$FE`   | T1OUT     | Timer 1 output. Read clears it.                               |
 | `$FF`   | T2OUT     | Timer 2 output. Read clears it.                               |
 
-Most of Part III will be about `$F2` and `$F3` (the DSP gateway). Most of Part IV will be about `$F4-$F7` (the mailbox). The timers come up in Chapter 16 when we talk about how a sound driver paces itself. `$F8` and `$F9` are general-purpose RAM bytes that just happen to live in the I/O page; some drivers use them as scratch storage, but for beginner code there's no reason to single them out.
+Most of Part III will be about `$F2` and `$F3` (the DSP gateway). Most of Part IV will be about `$F4-$F7` (the mailbox). The timers come up in Chapter 17, Anatomy of a Sound Driver, when we talk about how a sound driver paces itself. `$F8` and `$F9` are general-purpose RAM bytes that just happen to live in the I/O page; some drivers use them as scratch storage, but for beginner code there's no reason to single them out.
 
 A few notes:
 
-**`$F1` (CONTROL) is write-only.** You cannot read it. Any read returns `$00`. So you cannot do "read CONTROL, modify a bit, write it back" — you have to write the full byte you want every time. We'll come back to this in Chapter 16.
+**`$F1` (CONTROL) is write-only.** You cannot read it. Any read returns `$00`. So you cannot do "read CONTROL, modify a bit, write it back" — you have to write the full byte you want every time. We'll come back to this in Chapter 17.
 
 **Writing to `$F1` does things to timers.** A 0-to-1 transition on a timer-enable bit resets the timer's internal counter. So writes to `$F1` are not consequence-free; they perturb timer state. Plan your writes deliberately.
 
-**`$F2` and `$F3` are the DSP gateway.** Writing a register number `r` to `$F2`, then writing a value `v` to `$F3`, is how you tell the DSP "set register r to value v." Reading `$F3` after writing the address to `$F2` reads back the current value of the selected DSP register. We'll cover this in Chapter 11.
+**`$F2` and `$F3` are the DSP gateway.** Writing a register number `r` to `$F2`, then writing a value `v` to `$F3`, is how you tell the DSP "set register r to value v." Reading `$F3` after writing the address to `$F2` reads back the current value of the selected DSP register. We'll cover this in Chapter 12.
 
-**`$F4-$F7` are the mailbox to the main CPU.** Either side can read or write these. From the main CPU, the same four bytes are visible at `$2140-$2143`. We'll cover this in Chapter 15.
+**`$F4-$F7` are the mailbox to the main CPU.** Either side can read or write these. From the main CPU, the same four bytes are visible at `$2140-$2143`. We'll cover this in Chapter 16.
 
 ### Direct page, properly
 
@@ -977,7 +997,7 @@ When an instruction executes, it modifies some of these state components. By Par
 ---
 
 
-## Chapter 6: Boot and Code Loading
+## Chapter 7: Boot and Code Loading
 
 How does code get into the SPC-700 in the first place?
 
@@ -1056,7 +1076,7 @@ start:
     ; ... main loop ...
 ```
 
-The exact value written to `$F1` depends on what the driver wants to do with the IPL ROM and the timers. We'll see specifics in Chapter 16.
+The exact value written to `$F1` depends on what the driver wants to do with the IPL ROM and the timers. We'll see specifics in Chapter 17, Anatomy of a Sound Driver.
 
 ### Where your code lives
 
@@ -1074,7 +1094,7 @@ $0200-???     Driver code (executable instructions)
 ???-$FFFF     Echo buffer (allocated from the top, often)
 ```
 
-The exact boundaries are decisions the driver author makes. Some drivers pack samples right after code; some leave a fixed gap; some compute layouts at runtime. We'll look at real layouts in Chapter 16.
+The exact boundaries are decisions the driver author makes. Some drivers pack samples right after code; some leave a fixed gap; some compute layouts at runtime. We'll look at real layouts in Chapter 17.
 
 ### Resident drivers vs. one-shot uploads
 
@@ -1082,7 +1102,7 @@ There are two flavors of SPC code you might write.
 
 A **resident driver** is uploaded once at console power-on and stays in ARAM forever. It has a main loop, polls the mailbox, accepts commands like "play song 5" or "stop SFX channel 3," and orchestrates audio continuously. This is what every commercial SNES game does.
 
-A **one-shot SPC** — for example, an SPC file you're sharing with friends — is a snapshot of ARAM after a song has already been loaded and started. It captures the driver, its data, and the moment-in-time state. We'll cover SPC files in Chapter 18.
+A **one-shot SPC** — for example, an SPC file you're sharing with friends — is a snapshot of ARAM after a song has already been loaded and started. It captures the driver, its data, and the moment-in-time state. We'll cover SPC files in Chapter 19.
 
 For learning, you'll usually be writing resident drivers — small ones, but resident — and snapshotting them as SPC files for sharing.
 
@@ -1106,7 +1126,7 @@ For learning, you'll usually be writing resident drivers — small ones, but res
 ---
 
 
-## Chapter 7: Moving Data
+## Chapter 8: Moving Data
 
 If you remember one thing from this chapter, remember this: **the SPC-700 does almost nothing without first moving a byte.** Every arithmetic operation has to have its inputs in the right place. Every DSP write has to put the right value in A and the right register number in Y. Every table lookup has to set up X first.
 
@@ -1296,7 +1316,7 @@ This is a representative SPC-700 inner loop: small, dense, using one direct-page
 
 ---
 
-## Chapter 8: Arithmetic
+## Chapter 9: Arithmetic
 
 The SPC-700 can add, subtract, compare, increment, decrement, multiply, and divide. It has special instructions for the YA 16-bit pair. It also has decimal-adjust instructions that nobody uses for music. We'll cover what matters and skim the rest.
 
@@ -1503,7 +1523,7 @@ These are a real cycle savings when you'd otherwise do "load, op, store." They s
 
 ---
 
-## Chapter 9: Logic, Shifts, and Bits
+## Chapter 10: Logic, Shifts, and Bits
 
 This chapter covers operations that treat bytes as bit patterns rather than as numbers: AND, OR, EOR (exclusive OR), shifts, rotates, and the SPC-700's surprisingly rich set of single-bit instructions.
 
@@ -1564,7 +1584,7 @@ The first instruction shifts; the second rotates the carry-out from the first in
 
 ### XCN, revisited
 
-We met `XCN A` in Chapter 7. It exchanges the high and low nibbles. It's worth noting again here because it's effectively four shifts in one instruction — `XCN A` is equivalent to four `ASL A` or four `LSR A`, but in 5 cycles instead of 8.
+We met `XCN A` in Chapter 8. It exchanges the high and low nibbles. It's worth noting again here because it's effectively four shifts in one instruction — `XCN A` is equivalent to four `ASL A` or four `LSR A`, but in 5 cycles instead of 8.
 
 ### Single-bit operations on direct page
 
@@ -1677,7 +1697,7 @@ Two instructions. About 6 cycles total, regardless of X. This is how real driver
 
 ---
 
-## Chapter 10: Control Flow
+## Chapter 11: Control Flow
 
 A program is data plus a pattern of jumps. We've already used a few branch instructions in passing — `BEQ`, `BNE`, `BCS`, `BCC` showed up in earlier examples. This chapter pulls all the control-flow instructions into one place.
 
@@ -1893,7 +1913,7 @@ This part covers what's on the other side of the window: voices, pitch, samples,
 
 ---
 
-## Chapter 11: The DSP Register Window
+## Chapter 12: The DSP Register Window
 
 The SPC-700 talks to the S-DSP through exactly two memory-mapped addresses: `$F2` and `$F3`. This chapter is about how that window works, the etiquette of writing through it, and what the DSP's register file looks like.
 
@@ -1952,7 +1972,7 @@ You'll call this constantly. Some drivers inline it everywhere instead of using 
 
 The S-DSP doesn't react instantly to register writes. It runs an internal cycle that samples different registers at different phases. For most registers — volumes, ADSR settings, sample sources — the polling happens often enough (per-sample or every few samples) that you can write whenever you want and the change takes effect within a small fraction of a millisecond.
 
-For **KON** and **KOFF** (which we'll meet in detail in Chapter 12), the polling is timing-sensitive. Community-documented timing puts the KON/KOFF poll at every second sample, on a fixed phase of the DSP's processing cadence. The detail you need to know as a driver author is that **a single voice should not be both keyed-on and keyed-off in the same poll window**, or the DSP may key it on and immediately enter release, producing a missed or stuttering note.
+For **KON** and **KOFF** (which we'll meet in detail in Chapter 13), the polling is timing-sensitive. Community-documented timing puts the KON/KOFF poll at every second sample, on a fixed phase of the DSP's processing cadence. The detail you need to know as a driver author is that **a single voice should not be both keyed-on and keyed-off in the same poll window**, or the DSP may key it on and immediately enter release, producing a missed or stuttering note.
 
 The practical consequences:
 
@@ -2038,7 +2058,7 @@ mov   y, #%00000000   ; clear MUTE; allow echo writes
 movw  $f2, ya
 ```
 
-Bring up MUTE first, then deal with echo separately. Echo can't make noise until you've set EVOLL, EVOLR, and the FIR coefficients to sane values; we'll cover the safe sequence in Chapter 14.
+Bring up MUTE first, then deal with echo separately. Echo can't make noise until you've set EVOLL, EVOLR, and the FIR coefficients to sane values; we'll cover the safe sequence in Chapter 15.
 
 ### Don't write what you don't have to
 
@@ -2068,7 +2088,7 @@ clr1  $50.0
 ; ... etc for every register ...
 ```
 
-This pattern scales. We'll see it in real driver layouts in Chapter 16.
+This pattern scales. We'll see it in real driver layouts in Chapter 17.
 
 ### What you should remember
 
@@ -2089,9 +2109,9 @@ This pattern scales. We'll see it in real driver layouts in Chapter 16.
 
 ---
 
-## Chapter 12: Voices, Pitch, and Envelopes
+## Chapter 13: Voices, Pitch, and Envelopes
 
-The S-DSP has eight voices. Each one is a little sample player: it reads compressed sample data from ARAM, decodes it on the fly, multiplies by its envelope, multiplies by its volume, and adds the result to the stereo mix. We covered the register layout in Chapter 11. This chapter explains what each per-voice register actually controls, so you can play notes that sound like notes.
+The S-DSP has eight voices. Each one is a little sample player: it reads compressed sample data from ARAM, decodes it on the fly, multiplies by its envelope, multiplies by its volume, and adds the result to the stereo mix. We covered the register layout in Chapter 12. This chapter explains what each per-voice register actually controls, so you can play notes that sound like notes.
 
 ### A voice, conceptually
 
@@ -2139,7 +2159,7 @@ bytes 0-1: BRR start address (little-endian)
 bytes 2-3: BRR loop address  (little-endian)
 ```
 
-We'll cover BRR format itself in Chapter 13. For now: **SRCN picks an entry in the directory, and the directory tells the DSP where the actual sample data is.** You can have up to 256 samples loaded at once, in principle. In practice, ARAM is small and games typically load fewer than 32 samples at a time.
+We'll cover BRR format itself in Chapter 14. For now: **SRCN picks an entry in the directory, and the directory tells the DSP where the actual sample data is.** You can have up to 256 samples loaded at once, in principle. In practice, ARAM is small and games typically load fewer than 32 samples at a time.
 
 `SRCN` is sampled on key-on. Changing SRCN while a voice is playing has no effect until the voice is keyed on again or until the sample loops.
 
@@ -2334,7 +2354,7 @@ Treat ENDX as **hardware-updated status**, not as a read-to-clear event queue. E
 
 ---
 
-## Chapter 13: BRR Samples
+## Chapter 14: BRR Samples
 
 We have been waving our hands about "the sample" for a chapter and a half. In this chapter we open up the format. BRR (Bit Rate Reduction) is the SNES's compressed sample format. Every sound the SNES makes — every note, every drum hit, every speech sample — is BRR-encoded in ARAM somewhere. Understanding it is non-negotiable.
 
@@ -2516,7 +2536,7 @@ To select the piano on voice 0, write SRCN = 0 to register `$04`. To select the 
 
 ---
 
-## Chapter 14: Echo, Noise, and Pitch Modulation
+## Chapter 15: Echo, Noise, and Pitch Modulation
 
 The S-DSP has three special features that go beyond "play eight samples and mix them": **echo**, **noise**, and **pitch modulation**. None of them are necessary for music to exist. All three are part of what makes SNES music sound *like* SNES music — the echo on Final Fantasy VI, the noise-driven hi-hats in Donkey Kong Country, the modulated bass in Star Fox.
 
@@ -2735,7 +2755,7 @@ The remaining four chapters cover the architecture of a sound driver, the conver
 
 ---
 
-## Chapter 15: Inter-CPU Communication
+## Chapter 16: Inter-CPU Communication
 
 The main CPU and the SPC-700 talk through four 8-bit ports. From the main CPU's side, they're memory-mapped at `$2140-$2143`. From the SPC's side, they're at `$00F4-$00F7`. The same four bytes; both CPUs can read and write them.
 
@@ -2754,7 +2774,7 @@ Either side can read or write any port at any time. There is no built-in synchro
 
 ### The IPL upload protocol, in detail
 
-We sketched the boot upload in Chapter 6. Now let's spell it out precisely.
+We sketched the boot upload in Chapter 7. Now let's spell it out precisely.
 
 **Phase 1: handshake.**
 
@@ -2910,7 +2930,7 @@ The main CPU sees the SPC respond on the order of a few microseconds to a few mi
 
 ---
 
-## Chapter 16: Anatomy of a Sound Driver
+## Chapter 17: Anatomy of a Sound Driver
 
 A **sound driver** is the SPC-side program that turns the S-DSP from "eight sample players" into "a music engine." Every SNES game has one. They differ wildly in detail but share a structure. This chapter explains that structure.
 
@@ -3081,7 +3101,7 @@ After ticking all channels, the driver translates state into DSP writes. The dir
 service_dsp_writes:
     mov   x, #0                   ; voice index
 .loop:
-    ; Compute bit mask for voice X. (Use the lookup table from Chapter 9.)
+    ; Compute bit mask for voice X. (Use the voice-mask lookup table from Chapter 10.)
     ; If dirty bit is clear, skip this voice.
     ; Otherwise, write all of this voice's registers from shadow data:
     ;   VOLL, VOLR, PITCHL, PITCHH, SRCN, ADSR1, ADSR2, GAIN
@@ -3165,7 +3185,7 @@ This is the SNES audio reality: short samples, looped. Most instruments are 1–
 
 ---
 
-## Chapter 17: A Composer's Workflow
+## Chapter 18: A Composer's Workflow
 
 You now know enough to read a driver. The next question is: how do you actually make music? In 1992, the answer was "work for a Japanese game studio that has its own driver and tools." In 2026, the answer is much friendlier, and this chapter walks through the modern landscape.
 
@@ -3284,7 +3304,7 @@ By the time you've done all eight, you'll know more about SNES audio than 99% of
 
 ---
 
-## Chapter 18: Tooling, Testing, and SPC Files
+## Chapter 19: Tooling, Testing, and SPC Files
 
 The last chapter of the main text covers the practical infrastructure: which assembler to use, which emulator to debug in, and what's actually inside an SPC file.
 
@@ -3433,7 +3453,7 @@ Before you call a song "done":
 
 1. Set up Mesen2 and load any commercial SNES ROM. Find the SPC debugger. Step through the SPC code for a few thousand instructions while music plays. What patterns do you see?
 2. Find a publicly-available SPC file (e.g., an SPC of a game whose music you like). Open it in a hex editor. Find the ARAM dump (offset `$0100`). Can you identify the BRR sample data? The driver code?
-3. Look up Asar's documentation. Write a "hello world" SPC program that uploads, plays a single tone using the example from Chapter 12, and runs forever.
+3. Look up Asar's documentation. Write a "hello world" SPC program that uploads, plays a single tone using the first-voice example from Chapter 13, Voices, Pitch, and Envelopes, and runs forever.
 4. List three differences between hearing a song through an emulator and hearing it on real hardware. Why does each one matter?
 5. Why is the SPC file format the way it is? What design pressures led to "snapshot the whole state"?
 
@@ -3833,7 +3853,7 @@ By the end, you're not the world's best SPC-700 programmer. But you can read any
 
 # Appendix E: A One-Octave Pitch Table
 
-Chapter 12 referred to "a pitch table indexed by note number" without showing one. This appendix gives a small, complete pitch table covering one octave, with the surrounding code to extend it across the full musical range.
+Chapter 13, Voices, Pitch, and Envelopes, referred to "a pitch table indexed by note number" without showing one. This appendix gives a small, complete pitch table covering one octave, with the surrounding code to extend it across the full musical range.
 
 ## The math
 
