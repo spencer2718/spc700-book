@@ -3,6 +3,38 @@
 If an exercise doesn't work, check these in order. The most common
 problems are tooling-related, not code-related.
 
+## Mesen2 windows: which one shows what?
+
+Most "I can't find ARAM" / "the debugger doesn't show what the
+README says" reports come down to looking in the wrong Mesen2
+window. The book's exercises use four Mesen2 windows; all of them
+are opened from the **main** Mesen2 window's menu bar (not from
+inside another debugger window).
+
+| Window         | Menu path                  | Shortcut | Shows                                        |
+|----------------|----------------------------|----------|----------------------------------------------|
+| SPC Debugger   | Debug → SPC Debugger       | Ctrl+F   | SPC CPU state, disassembly, breakpoints      |
+| Memory Tools   | Debug → Memory Tools       | Ctrl+M   | Raw bytes for any selected memory region     |
+| Trace Logger   | Debug → Trace Logger       | Ctrl+J   | Per-instruction execution trace              |
+| Event Viewer   | Debug → Event Viewer       | Ctrl+E   | Frame-level events (PPU/APU/DMA timing)      |
+
+Memory Tools has a **Memory Type** dropdown near the top. The
+values relevant to this book:
+
+- **RAM** — the SPC's 64 KiB ARAM. This is what the chapters
+  usually mean when they say "ARAM."
+- **SPC** — the SPC CPU's mapped address space (includes the IPL
+  ROM near the top end).
+- **DSP** — the DSP register file. Use this when an exercise asks
+  you to verify a DSP register's value.
+- **ROM** — the SPC's IPL ROM (rarely needed).
+
+The **SPC Debugger** window's own Debug menu has *only* execution
+controls (continue, step, run cycle/frame/scanline). It does
+**not** contain a memory view — that's what Memory Tools is for.
+The two windows are independent and typically kept open side by
+side.
+
 ## "asar: command not found"
 
 Asar isn't on your `PATH`. Either fix your `PATH` to include the
@@ -37,9 +69,9 @@ stub.
 ## ROM loads but Mesen2 shows a black screen forever
 
 Expected. The stub ROM doesn't render anything to the screen — it
-hands off to the SPC and idles. Open the SPC debugger
-(`Debug > Sound > SPC` in Mesen2) and you should see your code
-running there. The screen being black is correct.
+hands off to the SPC and idles. Open the SPC Debugger (Debug →
+SPC Debugger, or Ctrl+F, on the main Mesen2 window) and you should
+see your code running there. The screen being black is correct.
 
 ## SPC debugger shows PC stuck at `$FFC0` or `$FFC9`
 
@@ -64,8 +96,15 @@ infinite loop without doing the thing you expected.
 ## ARAM doesn't show what I wrote
 
 Common causes:
-- Mesen2's ARAM viewer needs a manual refresh on some versions.
-  Step the SPC one instruction and recheck.
+- **You're looking at the wrong window.** ARAM bytes live in the
+  *Memory Tools* window (Debug → Memory Tools, Ctrl+M, on the main
+  Mesen2 window — not inside the SPC Debugger), with Memory Type
+  set to **RAM**. The SPC Debugger's disassembly pane shows code,
+  not data, and may render non-code bytes as "unidentified"
+  garbage. See the "Mesen2 windows" section above.
+- Mesen2's Memory Tools view updates live, but if you're paused
+  in the SPC Debugger, advance one instruction (F10) so the byte
+  you expect to be written has actually executed.
 - You wrote to a register address (`$F0`-`$FF`) instead of a
   RAM address. Those have hardware side effects, not RAM writes.
 - You wrote to an absolute address with the wrong `org` setting.
